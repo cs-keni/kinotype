@@ -31,4 +31,19 @@ Commits: e54dc31 (T4), 33317d0 (T5+T6)
 - Skip write guard: `|newWght - prevWght| < 2` avoids pointless micro-updates
 - `tsc --noEmit`: clean
 
+Commit: f37432e (T8 varfont — prior session)
+
+### Attractor tuning — oscillation fix
+Root cause of "letters orbit but don't land": `F_MAX=0.001` gave terminal velocity ~55px/tick at close range (dist<3px). Letters whipped through home repeatedly, never satisfying `dist < SLEEP_DIST_PX AND speed < SLEEP_SPEED` simultaneously.
+
+Changes:
+- `F_MAX`: 0.001 → 0.0003 — lowers close-range terminal to ~5.6px/tick
+- `frictionAir` during return: 0.005 → 0.015 — more damping per tick, faster settling
+- `SLEEP_DIST_PX`: 3 → 5 — wider snap radius; at 5px with 5.6px/tick terminal, letters cross within capture zone
+- Sleep detection: removed speed condition entirely — purely dist-based. Snap fires when all bodies within 5px regardless of velocity
+
+Combined effect: letters approach home at ≤5.6px/tick, regularly pass inside the 5px threshold, snap cleanly. `setStatic(true)` in deactivate prevents re-fall.
+
+Variable font bolding behavior confirmed intentional: wght lerps 300→900 with speed. Bold on fall, light at rest — working as designed.
+
 Commit: (pending)

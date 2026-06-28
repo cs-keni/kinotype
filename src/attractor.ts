@@ -2,19 +2,17 @@ import Matter from 'matter-js'
 import type { PhysicsLetter } from './types'
 
 // Tuning constants — empirical; adjust during VQT #3 pass
-// K must account for Matter.js deltaTime² scaling (~278 at 60fps):
-//   terminal_velocity (px/tick) = (K / dist) * 277.8 / frictionAir
-//   At d=300, frictionAir=0.005 → ~9 px/tick return speed
+// terminal_velocity (px/tick) ≈ (force * 277.8) / frictionAir
+// K=0.05, frictionAir=0.015 → ~3px/tick at d=300, ~5.6px/tick close (F_MAX cap)
 export const K = 0.05
 export const EPSILON = 10
-export const F_MAX = 0.001
-export const SLEEP_DIST_PX = 3
-export const SLEEP_SPEED = 0.5
+export const F_MAX = 0.0003    // low cap prevents close-range oscillation
+export const SLEEP_DIST_PX = 5 // snap when within 5px — speed irrelevant at that scale
 
 export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[]): () => void {
   engine.gravity.y = 0
   letters.forEach((l) => {
-    l.body.frictionAir = 0.005
+    l.body.frictionAir = 0.015  // higher than 0.005 for stable settling without orbit kill
     // Sensors don't generate collision response — letters pass through each other
     // during return so each goes straight to its own home without pile-up jitter
     l.body.isSensor = true
@@ -43,8 +41,7 @@ export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[
         y: (dy / (dist || 1)) * forceMag,
       })
 
-      const speed = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2)
-      if (dist > SLEEP_DIST_PX || speed > SLEEP_SPEED) {
+      if (dist > SLEEP_DIST_PX) {
         allAsleep = false
       }
     }
