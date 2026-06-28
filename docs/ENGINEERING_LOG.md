@@ -46,4 +46,4 @@ Combined effect: letters approach home at ≤5.6px/tick, regularly pass inside t
 
 Variable font bolding behavior confirmed intentional: wght lerps 300→900 with speed. Bold on fall, light at rest — working as designed.
 
-Commit: (pending)
+Commit: 039c5c8
