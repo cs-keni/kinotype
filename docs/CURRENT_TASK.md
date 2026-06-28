@@ -1,15 +1,19 @@
 # Current Task
 
-**Active:** T5 — renderer (`src/renderer.ts`)
+**Active:** T9 — Vitest unit tests
 
 ## What's done
-- T1 (scaffold), T2 (decompose), T3 (poster/VQT #1), T4 (physics engine + bodies) — all complete
+- T1 (scaffold), T2 (decompose), T3 (poster/VQT #1), T4 (physics), T5 (renderer), T6 (input), T7 (attractor), T8 (varfont) — all complete
+- Phase 1 core implementation is done — needs VQT #3 (jitter), profiling gate, and interactive testing
 
 ## What's next
-- T5: `src/renderer.ts` — `Matter.Events.on(engine, 'afterUpdate', syncDOM)`, reads-before-writes DOM sync, relative-to-home transforms
-- T6: `src/input.ts` — mousemove repulsion (80px), click impulse, lazy runner start
-- T7: `src/attractor.ts` — non-linear home attractor, phase transitions
-- T8: variable font axis mapping in renderer.ts
+- Interactive verification: open http://localhost:5174 in a real browser, hover + click to confirm physics + varfont behavior
+- T9: Vitest unit tests (attractor force function, mass bounds, axis mapping at rest/max)
+- T10: Playwright E2E (resting state screenshot, additive velocity, idle return)
+- T11: Dev-mode frame time logger + 4ms profiling gate
+
+## Key constraint
+Physics runner (`Matter.Runner`) must NOT start on page load — T6 starts it on first mousemove/click. Letters are static bodies until `wakeBodies()` is called.
 
 ## Key constraint
 Physics runner (`Matter.Runner`) must NOT start on page load — T6 starts it on first mousemove/click. Letters are static bodies until `wakeBodies()` is called.

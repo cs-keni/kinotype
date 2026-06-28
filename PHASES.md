@@ -64,14 +64,14 @@
   - Visual Quality Target #1 gate: do NOT proceed to physics until this screenshot is approved
 
 ### Core Physics
-- [ ] **T4 (P1, human: ~2h / CC: ~15min)** — physics — Matter.js engine + letter bodies
+- [x] **T4 (P1, human: ~2h / CC: ~15min)** — physics — Matter.js engine + letter bodies
   - `src/physics.ts`: `createEngine()`, `createBodies(homes: HomePosition[])`
   - Body params: `restitution: 0.3`, `friction: 0.1`, `frictionAir: 0.02`, `gravity.y: 1`
   - Mass: `clamp(width * height * DENSITY_CONSTANT, MIN_MASS, MAX_MASS)` — MAX/MIN ≤ 5.0
   - Body position: center at `(homeX, homeY)`
   - Letters collide with each other AND the floor/wall bounds
 
-- [ ] **T5 (P1, human: ~3h / CC: ~20min)** — renderer — RAF render loop (DOM sync)
+- [x] **T5 (P1, human: ~3h / CC: ~20min)** — renderer — RAF render loop (DOM sync)
   - `src/renderer.ts`: `Matter.Events.on(engine, 'afterUpdate', syncDOM)`
   - All physics reads BEFORE all DOM writes (no interleaved getBoundingClientRect)
   - Transform: `translate(body.x - homeX, body.y - homeY) rotate(body.angle)`, `transform-origin: center`
@@ -80,14 +80,14 @@
   - Physics world bounds: floor at `window.innerHeight`, walls at 0 and `window.innerWidth`
   - Verify: on page load, letters hang at home positions (no physics). On first mousemove/click, physics awakens and letters react
 
-- [ ] **T6 (P1, human: ~1h / CC: ~10min)** — input — Mouse repulsion + click impulse
+- [x] **T6 (P1, human: ~1h / CC: ~10min)** — input — Mouse repulsion + click impulse
   - `src/input.ts`: `mousemove` → repulsion force within **80px radius** (precise flinch — nearby letters only); `click` → radial impulse
   - First `mousemove` or `click` starts the physics runner (`Matter.Runner.run`)
   - Both events reset the idle timer
   - Verify: hover causes letter lean within ~80px only; click causes scatter; second click mid-flight ADDS velocity
 
 ### Return Mechanic
-- [ ] **T7 (P1, human: ~3h / CC: ~20min)** — attractor — Non-linear home attractor + phase transitions
+- [x] **T7 (P1, human: ~3h / CC: ~20min)** — attractor — Non-linear home attractor + phase transitions
   - `src/attractor.ts`: activate after 3s idle
   - On activate: `engine.gravity.y = 0`; set `frictionAir = 0.005` on all bodies
   - Force per body per tick: `F = clamp(k / (dist + EPSILON), 0, F_MAX)` toward home
@@ -97,7 +97,7 @@
   - Verify: letters orbit and spiral home (not straight-line return); overshoot-and-settle visible
 
 ### Variable Font Coupling (moved from Phase 2 into Phase 1 foundation)
-- [ ] **T8 (P1, human: ~2h / CC: ~15min)** — varfont — Three-axis Fraunces mapping in renderer
+- [x] **T8 (P1, human: ~2h / CC: ~15min)** — varfont — Three-axis Fraunces mapping in renderer
   - Add to `syncDOM` in `renderer.ts` AFTER batched transform writes
   - `speed = √(vx² + vy²)`, `angularSpeed = |angularVelocity|`
   - `wght = lerp(300, 900, clamp(speed / MAX_SPEED, 0, 1))` — rest at 300 (Light), max at 900 (Black)
