@@ -51,7 +51,7 @@
   - Font load failure → `console.error` + display user-visible message in the container; do NOT proceed with wrong metrics
   - Verify: each span has correct width/height/centerX/centerY logged to console; phrase fades in on load
 
-- [ ] **T3 (P1, human: ~1h / CC: ~10min)** — poster — Resting state poster design
+- [x] **T3 (P1, human: ~1h / CC: ~10min)** — poster — Resting state poster design
   - Runs AFTER span decomposition is applied (span-wrapped version is canonical)
   - Typography: Fraunces, `font-style: normal` (upright), `font-size: clamp(48px, 8vw, 96px)`, `letter-spacing: -0.02em`, `line-height: 1.05`
   - Rest-state variable font axes: `font-variation-settings: 'wght' 300, 'SOFT' 100, 'opsz' 72`
