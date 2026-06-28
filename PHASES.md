@@ -43,7 +43,7 @@
   - `#trail-canvas`: `position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1;`
   - Verify: `npm run dev` serves the page with no errors
 
-- [ ] **T2 (P1, human: ~3h / CC: ~15min)** — decompose — Letter span wrapping + `document.fonts.ready` guard
+- [x] **T2 (P1, human: ~3h / CC: ~15min)** — decompose — Letter span wrapping + `document.fonts.ready` guard
   - `src/decompose.ts`: wrap each non-space character in `<span aria-hidden="true">`, return `HomePosition[]`
   - Container (`#phrase`): add `aria-label="motion creates form"` and `role="text"` so screen readers read the full phrase
   - Start with `#phrase { opacity: 0; }` in CSS; after `document.fonts.ready` resolves, set `opacity: 1` with 150ms ease-in transition
