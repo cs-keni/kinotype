@@ -1,0 +1,81 @@
+:root {
+  --bg: #F7F4EE;
+  --fg: #1A1A1A;
+  --accent: #C0392B;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  cursor: default;
+  overflow: hidden;
+}
+
+#trail-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+#stage {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#phrase {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: normal;
+  font-size: clamp(48px, 8vw, 96px);
+  font-variation-settings: 'wght' 300, 'SOFT' 100, 'opsz' 72;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  opacity: 0;
+  transition: opacity 150ms ease-in;
+  user-select: none;
+  cursor: default;
+}
+
+#phrase span {
+  display: inline-block;
+  will-change: transform, font-variation-settings;
+  transform-origin: center center;
+  cursor: default;
+}
+
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fonts/Fraunces[SOFT,WONK,opsz,wght].ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fonts/Fraunces-Italic[SOFT,WONK,opsz,wght].ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: block;
+}

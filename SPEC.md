@@ -234,11 +234,11 @@ visit.
 ## Feature Breakdown
 
 ### Phase 1 — Physics Foundation (Weeks 1–4)
-- [ ] Font selection finalized (design decision, not technical)
+- [ ] Font selection finalized (design decision, not technical) — **RESOLVED: Fraunces**
 - [ ] Letter decomposition: measure each glyph, create Matter.js bodies
-- [ ] Basic gravity: letters fall on page load, stack on floor
-- [ ] Mouse force: pointer repels letters within a radius
-- [ ] Click: impulse radiating from click point
+- [ ] **Hang on load**: letters are at home positions (static) until first interaction. Physics runner starts on first mousemove or click.
+- [ ] Mouse force: pointer repels letters within **80px radius**
+- [ ] Click: impulse radiating from click point (also awakens physics if not started)
 - [ ] DOM render loop: physics position drives CSS transform
 - [ ] Attractor: letters drift home after 3s idle
 
@@ -338,15 +338,17 @@ visit.
 const speed = Math.sqrt(vx*vx + vy*vy)
 const angularSpeed = Math.abs(body.angularVelocity)
 
-const weight = lerp(100, 900, clamp(speed / MAX_SPEED, 0, 1))
-const soft   = lerp(100, 0,   clamp(speed / MAX_SPEED, 0, 1))  // inverted
-const opsz   = lerp(72,  36,  clamp(angularSpeed / MAX_ANGULAR, 0, 1)) // narrow range
+// Rest state: wght=300, SOFT=100, opsz=72 (at zero velocity)
+// Scatter state: wght→900, SOFT→0, opsz→36 (at MAX_SPEED / MAX_ANGULAR)
+const weight = lerp(300, 900, clamp(speed / MAX_SPEED, 0, 1))  // 300=Light at rest, 900=Black at speed
+const soft   = lerp(100, 0,   clamp(speed / MAX_SPEED, 0, 1))  // inverted: 100=round at rest, 0=sharp at speed
+const opsz   = lerp(72,  36,  clamp(angularSpeed / MAX_ANGULAR, 0, 1)) // narrow range only
 
 element.style.fontVariationSettings = `"wght" ${weight}, "SOFT" ${soft}, "opsz" ${opsz}`
 ```
-`wdth` is replaced by `SOFT` (Fraunces has no wdth). `opsz` range deliberately
-narrow (36–72, not 9–144) — full range reads as legibility glitch, not
-intentional morph. Expand in Phase 2 if testing shows it looks intentional.
+`wdth` is replaced by `SOFT` (Fraunces has no wdth). Rest weight is 300 (Light), not 100 (Thin) — wght=300
+gives poster-quality presence at rest while retaining dramatic contrast at scatter (300→900). `opsz` range
+deliberately narrow (36–72, not 9–144) — full range reads as legibility glitch, not intentional morph.
 
 **DOM coordinate system:**
 ```ts
