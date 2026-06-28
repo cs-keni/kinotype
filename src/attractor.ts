@@ -15,12 +15,18 @@ export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[
   engine.gravity.y = 0
   letters.forEach((l) => {
     l.body.frictionAir = 0.005
+    // Sensors don't generate collision response — letters pass through each other
+    // during return so each goes straight to its own home without pile-up jitter
+    l.body.isSensor = true
   })
 
   let listenerActive = true
+  let tickCount = 0
+  const MAX_TICKS = 600 // 10s failsafe at 60fps
 
   function tick() {
     if (!listenerActive) return
+    if (++tickCount >= MAX_TICKS) { deactivate(); return }
 
     let allAsleep = true
 
@@ -54,6 +60,7 @@ export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[
     engine.gravity.y = 1
     letters.forEach((l) => {
       l.body.frictionAir = 0.02
+      l.body.isSensor = false
       // Snap exactly to home and zero velocity to avoid residual drift
       Matter.Body.setPosition(l.body, { x: l.homeX, y: l.homeY })
       Matter.Body.setVelocity(l.body, { x: 0, y: 0 })
