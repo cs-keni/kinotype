@@ -1,6 +1,8 @@
 import './style.css'
 import { decompose } from './decompose'
 import { createEngine, createBodies } from './physics'
+import { startRenderer } from './renderer'
+import { initInput } from './input'
 
 async function init() {
   const phrase = document.getElementById('phrase') as HTMLParagraphElement
@@ -9,13 +11,14 @@ async function init() {
     const homes = await decompose(phrase)
     const engine = createEngine()
     const letters = createBodies(engine, homes)
+    startRenderer(engine, letters)
+    initInput(engine, letters, () => {
+      // T7: attractor fires here
+    })
 
     if (import.meta.env.DEV) {
-      console.log(`[kinotype] ${letters.length} bodies created, runner dormant until first interaction`)
+      console.log(`[kinotype] ready — ${letters.length} letters, runner starts on first interaction`)
     }
-
-    // T5: startRenderer(engine, letters)
-    // T6: initInput(engine, letters)
   } catch {
     // font load failure handled inside decompose()
   }
