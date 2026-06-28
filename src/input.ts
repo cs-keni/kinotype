@@ -4,7 +4,7 @@ import { wakeBodies } from './physics'
 
 const HOVER_RADIUS = 80
 const HOVER_FORCE = 0.004
-const CLICK_IMPULSE = 0.015
+const CLICK_IMPULSE = 0.05   // ~14px/tick initial velocity at mass=1
 const IDLE_MS = 3000
 
 export function initInput(

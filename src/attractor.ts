@@ -2,10 +2,13 @@ import Matter from 'matter-js'
 import type { PhysicsLetter } from './types'
 
 // Tuning constants — empirical; adjust during VQT #3 pass
-export const K = 0.00015
+// K must account for Matter.js deltaTime² scaling (~278 at 60fps):
+//   terminal_velocity (px/tick) = (K / dist) * 277.8 / frictionAir
+//   At d=300, frictionAir=0.005 → ~9 px/tick return speed
+export const K = 0.05
 export const EPSILON = 10
-export const F_MAX = 0.008
-export const SLEEP_DIST_PX = 2
+export const F_MAX = 0.001
+export const SLEEP_DIST_PX = 3
 export const SLEEP_SPEED = 0.5
 
 export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[]): () => void {
