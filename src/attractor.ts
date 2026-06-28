@@ -61,10 +61,11 @@ export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[
     letters.forEach((l) => {
       l.body.frictionAir = 0.02
       l.body.isSensor = false
-      // Snap exactly to home and zero velocity to avoid residual drift
       Matter.Body.setPosition(l.body, { x: l.homeX, y: l.homeY })
       Matter.Body.setVelocity(l.body, { x: 0, y: 0 })
       Matter.Body.setAngularVelocity(l.body, 0)
+      // Re-hang: make static so gravity doesn't pull them down again
+      Matter.Body.setStatic(l.body, true)
       l.element.style.transform = ''
     })
   }

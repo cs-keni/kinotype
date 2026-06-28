@@ -16,8 +16,9 @@ export function initInput(
   let idleTimer: ReturnType<typeof setTimeout> | null = null
 
   function ensureRunning(): void {
-    if (runner) return
+    // Always wake — bodies may have been re-staticized by attractor deactivate
     wakeBodies(letters)
+    if (runner) return
     runner = Matter.Runner.create()
     Matter.Runner.run(runner, engine)
   }
