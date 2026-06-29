@@ -69,6 +69,11 @@ Commit: 039c5c8
   - Fix: added `stepUntilHome(maxTicks=650)` to debug handle — loops calling `Engine.update`, returns when all letters ≤2px from home (guaranteed by tick 601 via failsafe). Runs entirely in-browser, no round-trip overhead per tick. Test 3 now completes in 298ms.
 - `main.ts`: debug handle gains `stepUntilHome` alongside `step` + `triggerIdle` + `getLetters`
 
+### fix(attractor): reset body angle to 0 on deactivate
+Bug: `deactivate()` called `setPosition(homeX,homeY)` and `setAngularVelocity(0)` but not `setAngle(0)`. Bodies retained residual mid-flight rotation angle. After snap, `syncDOM` re-read the non-zero angle and wrote `rotate(Nrad)` to the CSS transform on the next tick — leaving letters visually tilted at home.
+
+Fix: added `Matter.Body.setAngle(l.body, 0)` between `setPosition` and `setVelocity` in `deactivate()`. All 17 letters now return to `angle=0`, confirmed via headless browser query and screenshot (identical to initial resting state poster). All 41 tests pass (38 unit + 3 E2E).
+
 ### T11 — Dev-mode frame time logger
 - `renderer.ts`: DEV-gated branch in `startRenderer` wraps `syncDOM` with `performance.now()` timing
 - 60-slot `Float64Array` circular buffer; rolling avg logged every 60 frames via `frameCount % 60`

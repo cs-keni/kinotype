@@ -59,6 +59,7 @@ export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[
       l.body.frictionAir = 0.02
       l.body.isSensor = false
       Matter.Body.setPosition(l.body, { x: l.homeX, y: l.homeY })
+      Matter.Body.setAngle(l.body, 0)
       Matter.Body.setVelocity(l.body, { x: 0, y: 0 })
       Matter.Body.setAngularVelocity(l.body, 0)
       // Re-hang: make static so gravity doesn't pull them down again

@@ -177,11 +177,11 @@ _Visual Quality Targets #2, #3, #4, #5 all land here._
 
 ## Visual Quality Gate Checklist (before Phase 1 → Phase 2)
 
-- [ ] VQT #1: Resting state screenshot looks like a typographic poster _(poster design task, T3)_
-- [ ] VQT #3: Letters collide without jitter _(tuning during T4/T5)_
-- [ ] Profiling gate: avg frame time < 4ms at 60fps _(T11)_
-- [ ] Mid-flight additive velocity test passes _(T10 Playwright)_
-- [ ] Font load failure shows user-visible message _(T2)_
+- [x] VQT #1: Resting state screenshot looks like a typographic poster _(poster design task, T3)_
+- [x] VQT #3: Letters collide without jitter _(tuning during T4/T5)_
+- [x] Profiling gate: avg frame time < 4ms at 60fps _(T11)_ — measured 0.037–0.133ms
+- [x] Mid-flight additive velocity test passes _(T10 Playwright)_
+- [x] Font load failure shows user-visible message _(T2)_
 
 VQT #2 (subtle at low speed, dramatic at high), #4 (reassembly worth watching), #5 (no flicker trails) deferred to Phase 3.
 
