@@ -34,8 +34,12 @@ export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[
       const dy = homeY - body.position.y
       const dist = Math.sqrt(dx * dx + dy * dy)
 
-      // Non-linear attractor: weak far, strong close, capped
-      const forceMag = Math.min(K / (dist + EPSILON), F_MAX)
+      // Non-linear attractor: weak far, strong close, capped.
+      // Scale by body.mass so all letters share the same effective acceleration
+      // (a = F*m / m = F) regardless of glyph size. Without this, heavy letters
+      // (mass=2.5) get 5× less acceleration than light ones and miss the sleep
+      // threshold, hitting the MAX_TICKS failsafe and teleporting home.
+      const forceMag = Math.min(K / (dist + EPSILON), F_MAX) * body.mass
       Matter.Body.applyForce(body, body.position, {
         x: (dx / (dist || 1)) * forceMag,
         y: (dy / (dist || 1)) * forceMag,

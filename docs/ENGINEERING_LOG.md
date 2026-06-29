@@ -76,6 +76,11 @@ Fix: added `Matter.Body.setAngle(l.body, 0)` between `setPosition` and `setVeloc
 
 ## 2026-06-29
 
+### fix(attractor): mass-normalize force so heavy letters don't hit the failsafe snap
+Root cause: `forceMag = min(K/(dist+ε), F_MAX)` was applied identically to all letters regardless of mass. Matter.js does `a = F/mass`, so heavy letters (mass=2.5) had 5× less acceleration than light ones — they couldn't reach the 5px sleep radius in 600 ticks and the failsafe teleported them home instantly.
+
+Fix: `forceMag *= body.mass` before `applyForce`. This makes the effective acceleration mass-independent (`a = F*m / m = F`). All letters now converge at the same rate; the failsafe should never fire in normal play. All 38 unit tests pass.
+
 ### Phase 2 — Exponential axis curve (easeOut, exponent=0.45)
 Replaced linear `t` with `easeOut(t) = Math.pow(t, 0.45)` for all three variable font axes in `renderer.ts`. Effect: at 10% of MAX_SPEED, wght is already ~33% of the way to Black (vs 10% linear); at 50% speed, wght sits at ~73% (vs 50%). Letters that merely flinch already look noticeably bolder — the morph reads at subtle interaction levels. Angular velocity → opsz gets the same easing.
 
