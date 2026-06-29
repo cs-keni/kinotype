@@ -8,12 +8,14 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "matter-js": "^0.19.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/matter-js": "^0.19.8",
     "happy-dom": "^20.10.6",
     "typescript": "^5.4.5",

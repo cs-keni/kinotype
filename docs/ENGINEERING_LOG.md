@@ -59,3 +59,12 @@ Commit: 039c5c8
 - `tests/attractor.test.ts` (14 tests): constant regression guards (F_MAX ≤ 0.0003, SLEEP_DIST_PX ≥ 5), force formula at near/far/crossover, direction normalisation, dist-only sleep gate, deactivate cleanup (gravity, sensor, static, position, transform, style)
 - `tests/physics.test.ts` (12 tests): MIN_MASS/MAX_MASS clamping, unclamped mid-range, MAX/MIN = 5.0, body count, position, isStatic=true on create, prevWeight=300, label, wakeBodies
 - `tests/renderer.test.ts` (12 tests): wght=300/SOFT=100/opsz=72 at rest, wght=900/SOFT=0 at max speed, threshold filter skip + fire, translate + rotate sync
+
+### T10 — Playwright E2E tests (3 tests, all passing)
+- Installed: `@playwright/test@1.61.1`; added `test:e2e` script; created `playwright.config.ts`
+- Test 1 (resting state screenshot): `toHaveScreenshot('resting-state.png', maxDiffPixelRatio=0.01)` — baseline committed
+- Test 2 (additive velocity): two clicks 12 ticks apart; verifies max speed after 2nd click > 50% of max speed before 2nd click
+- Test 3 (idle return): scatter → `triggerIdle()` → `stepUntilHome()` → all letters within 2px of home
+  - Root cause of original failure: attractor `MAX_TICKS=600` failsafe fires at tick 600 (snaps all bodies to exact home); test was only stepping 480 ticks — just short of the failsafe
+  - Fix: added `stepUntilHome(maxTicks=650)` to debug handle — loops calling `Engine.update`, returns when all letters ≤2px from home (guaranteed by tick 601 via failsafe). Runs entirely in-browser, no round-trip overhead per tick. Test 3 now completes in 298ms.
+- `main.ts`: debug handle gains `stepUntilHome` alongside `step` + `triggerIdle` + `getLetters`

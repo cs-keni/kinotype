@@ -112,7 +112,7 @@
   - `tests/physics.test.ts`: mass within MIN/MAX bounds, MAX/MIN ≤ 5.0
   - `tests/renderer.test.ts`: at home → `translate(0,0) rotate(0)`; at rest → wght=300, SOFT=100, opsz=72; max speed → wght=900, SOFT=0
 
-- [ ] **T10 (P2, human: ~3h / CC: ~25min)** — tests-e2e — Playwright E2E tests
+- [x] **T10 (P2, human: ~3h / CC: ~25min)** — tests-e2e — Playwright E2E tests
   - Resting state screenshot regression (approved poster is the baseline)
   - Mid-flight additive velocity: click, wait 200ms, click again → `body.velocity.magnitude` at 2nd click > magnitude just before 2nd click
   - Idle return: click, wait 4s, verify all bodies within 2px of home position
