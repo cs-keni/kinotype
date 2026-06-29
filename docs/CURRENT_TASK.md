@@ -1,19 +1,20 @@
 # Current Task
 
-**Active:** T11 — Dev-mode frame time logger
+**Active:** Phase 1 wrap-up — profiling gate + VQT #3
 
 ## What's done
-- T1–T8 (scaffold through varfont) — all complete
-- Attractor settling fix verified in browser (039c5c8): no oscillation, no re-fall, 2 cycles confirmed
-- T9 (Vitest unit tests): 38 tests passing
-- T10 (Playwright E2E): 3 tests passing — resting state screenshot, additive velocity, idle return
+- T1–T11 (scaffold through frame time logger) — all complete
+- T9: 38 Vitest unit tests passing
+- T10: 3 Playwright E2E tests passing
+- T11: rolling 60-frame avg logger in renderer (DEV only), warns if > 4ms
 
-## What's next
-- T11: Dev-mode frame time logger
-  - In `renderer.ts` (guarded by `import.meta.env.DEV`)
-  - `performance.mark()` per tick; rolling 60-frame avg logged to console
-  - `console.warn` if avg frame time > 4ms (fontVariationSettings budget)
-  - **Profiling gate:** avg frame time < 4ms before Phase 2 begins
+## Profiling gate (before Phase 2)
+Run dev server, interact, check console for `[kinotype] syncDOM avg:` lines.
+Gate passes when avg < 4ms on mid-tier hardware.
 
-## Key constraint
-Physics runner (`Matter.Runner`) must NOT start on page load — T6 starts it on first mousemove/click. Letters are static bodies until `wakeBodies()` is called.
+## VQT #3
+Letters collide without jitter. Needs manual play-testing in the browser.
+If jitter is observed, tune `restitution`, `friction`, or sleep thresholds in physics.ts.
+
+## After gate + VQT #3 pass
+Phase 2 begins: variable font axis mapping curve tuning (exponential, not linear).

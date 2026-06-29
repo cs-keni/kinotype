@@ -68,3 +68,11 @@ Commit: 039c5c8
   - Root cause of original failure: attractor `MAX_TICKS=600` failsafe fires at tick 600 (snaps all bodies to exact home); test was only stepping 480 ticks — just short of the failsafe
   - Fix: added `stepUntilHome(maxTicks=650)` to debug handle — loops calling `Engine.update`, returns when all letters ≤2px from home (guaranteed by tick 601 via failsafe). Runs entirely in-browser, no round-trip overhead per tick. Test 3 now completes in 298ms.
 - `main.ts`: debug handle gains `stepUntilHome` alongside `step` + `triggerIdle` + `getLetters`
+
+### T11 — Dev-mode frame time logger
+- `renderer.ts`: DEV-gated branch in `startRenderer` wraps `syncDOM` with `performance.now()` timing
+- 60-slot `Float64Array` circular buffer; rolling avg logged every 60 frames via `frameCount % 60`
+- `console.warn` with "exceeds 4ms budget" suffix when avg > 4ms; `console.log` otherwise
+- Prod path unchanged — single `Events.on` with no overhead
+- `vite.config.ts`: added `exclude: ['tests/e2e/**']` so Vitest no longer picks up Playwright specs
+- tsc clean; 38 unit tests + 3 E2E tests all passing

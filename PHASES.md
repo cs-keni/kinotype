@@ -117,7 +117,7 @@
   - Mid-flight additive velocity: click, wait 200ms, click again → `body.velocity.magnitude` at 2nd click > magnitude just before 2nd click
   - Idle return: click, wait 4s, verify all bodies within 2px of home position
 
-- [ ] **T11 (P2, human: ~1h / CC: ~10min)** — profiling — Dev-mode frame time logger
+- [x] **T11 (P2, human: ~1h / CC: ~10min)** — profiling — Dev-mode frame time logger
   - In `renderer.ts` (guarded by `import.meta.env.DEV`)
   - `performance.mark()` per tick; log rolling avg every 60 frames
   - `console.warn` if avg frame time > 4ms (indicates fontVariationSettings budget exceeded)

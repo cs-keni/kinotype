@@ -13,7 +13,27 @@ function clamp01(v: number): number {
 }
 
 export function startRenderer(engine: Matter.Engine, letters: PhysicsLetter[]): void {
-  Matter.Events.on(engine, 'afterUpdate', () => syncDOM(letters))
+  if (import.meta.env.DEV) {
+    const frameTimes = new Float64Array(60)
+    let frameCount = 0
+
+    Matter.Events.on(engine, 'afterUpdate', () => {
+      const t0 = performance.now()
+      syncDOM(letters)
+      frameTimes[frameCount % 60] = performance.now() - t0
+      frameCount++
+
+      if (frameCount % 60 === 0) {
+        let sum = 0
+        for (let i = 0; i < 60; i++) sum += frameTimes[i]
+        const avg = sum / 60
+        const msg = `[kinotype] syncDOM avg: ${avg.toFixed(3)}ms (last 60 frames)`
+        avg > 4 ? console.warn(msg + ' — exceeds 4ms budget') : console.log(msg)
+      }
+    })
+  } else {
+    Matter.Events.on(engine, 'afterUpdate', () => syncDOM(letters))
+  }
 }
 
 function syncDOM(letters: PhysicsLetter[]): void {
