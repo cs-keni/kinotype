@@ -1,19 +1,15 @@
 # Current Task
 
-**Active:** T9 — Vitest unit tests
+**Active:** T10 — Playwright E2E tests
 
 ## What's done
-- T1 (scaffold), T2 (decompose), T3 (poster/VQT #1), T4 (physics), T5 (renderer), T6 (input), T7 (attractor), T8 (varfont) — all complete
-- Phase 1 core implementation is done — needs VQT #3 (jitter), profiling gate, and interactive testing
+- T1–T8 (scaffold through varfont) — all complete
+- Attractor settling fix verified in browser (039c5c8): no oscillation, no re-fall, 2 cycles confirmed
+- T9 (Vitest unit tests): 38 tests passing — attractor constants/force/sleep/integration, physics mass bounds + body state, renderer axis mapping at rest/max + threshold filter + transform sync
 
 ## What's next
-- Interactive verification: open http://localhost:5174 in a real browser, hover + click to confirm physics + varfont behavior
-- T9: Vitest unit tests (attractor force function, mass bounds, axis mapping at rest/max)
-- T10: Playwright E2E (resting state screenshot, additive velocity, idle return)
+- T10: Playwright E2E — resting state screenshot regression, additive velocity, idle return (all bodies within 2px of home)
 - T11: Dev-mode frame time logger + 4ms profiling gate
-
-## Key constraint
-Physics runner (`Matter.Runner`) must NOT start on page load — T6 starts it on first mousemove/click. Letters are static bodies until `wakeBodies()` is called.
 
 ## Key constraint
 Physics runner (`Matter.Runner`) must NOT start on page load — T6 starts it on first mousemove/click. Letters are static bodies until `wakeBodies()` is called.

@@ -47,3 +47,15 @@ Combined effect: letters approach home at ≤5.6px/tick, regularly pass inside t
 Variable font bolding behavior confirmed intentional: wght lerps 300→900 with speed. Bold on fall, light at rest — working as designed.
 
 Commit: 039c5c8
+
+### Attractor verified in browser (headless, 2 cycles)
+- All 17 letters returned to `wght=300`, max translation 0.027px (sub-pixel) after idle attractor
+- Second scatter+return cycle identical — `setStatic(true)` re-hang confirmed working
+- No oscillation, no re-fall in either cycle
+
+### T9 — Vitest unit tests (38 tests, all passing)
+- Installed: `vitest@4.1.9`, `happy-dom@20.10.6`; added `test` + `test:watch` scripts
+- `vite.config.ts`: added `test: { environment: 'happy-dom' }`
+- `tests/attractor.test.ts` (14 tests): constant regression guards (F_MAX ≤ 0.0003, SLEEP_DIST_PX ≥ 5), force formula at near/far/crossover, direction normalisation, dist-only sleep gate, deactivate cleanup (gravity, sensor, static, position, transform, style)
+- `tests/physics.test.ts` (12 tests): MIN_MASS/MAX_MASS clamping, unclamped mid-range, MAX/MIN = 5.0, body count, position, isStatic=true on create, prevWeight=300, label, wakeBodies
+- `tests/renderer.test.ts` (12 tests): wght=300/SOFT=100/opsz=72 at rest, wght=900/SOFT=0 at max speed, threshold filter skip + fire, translate + rotate sync

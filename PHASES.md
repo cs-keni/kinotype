@@ -107,7 +107,7 @@
   - Verify: letters visibly change weight on scatter; return to wght=300 SOFT=100 opsz=72 on reassembly
 
 ### Tests
-- [ ] **T9 (P2, human: ~2h / CC: ~20min)** — tests-unit — Vitest unit tests
+- [x] **T9 (P2, human: ~2h / CC: ~20min)** — tests-unit — Vitest unit tests
   - `tests/attractor.test.ts`: `F(d=500) < 0.001`, `F(d=10) > 0.1`, direction points toward home
   - `tests/physics.test.ts`: mass within MIN/MAX bounds, MAX/MIN ≤ 5.0
   - `tests/renderer.test.ts`: at home → `translate(0,0) rotate(0)`; at rest → wght=300, SOFT=100, opsz=72; max speed → wght=900, SOFT=0
