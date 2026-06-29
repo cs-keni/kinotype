@@ -1,20 +1,17 @@
 # Current Task
 
-**Active:** Phase 1 wrap-up — profiling gate + VQT #3
+**Active:** Phase 2 — variable font axis curve tuning
 
 ## What's done
-- T1–T11 (scaffold through frame time logger) — all complete
-- T9: 38 Vitest unit tests passing
-- T10: 3 Playwright E2E tests passing
-- T11: rolling 60-frame avg logger in renderer (DEV only), warns if > 4ms
+- T1–T11 complete (Phase 1 fully shipped)
+- Exponential axis curves landed: `easeOut(t) = Math.pow(t, 0.45)` applied to speed→wght/SOFT and angularSpeed→opsz
+- 38 unit tests passing
 
-## Profiling gate (before Phase 2)
-Run dev server, interact, check console for `[kinotype] syncDOM avg:` lines.
-Gate passes when avg < 4ms on mid-tier hardware.
+## In progress
+- **opsz range assessment**: current 36–72 may be too narrow; expand toward 9–144 if it reads as intentional morph rather than legibility glitch. Needs browser play-test.
+- **Composition 3 haiku**: original haiku on making/motion/form theme — to be written.
+- **Deploy config**: `netlify.toml` or `vercel.json` (unblocked).
+- **Window resize handler**: re-run `decompose()`, update homeX/homeY, move bodies.
 
-## VQT #3
-Letters collide without jitter. Needs manual play-testing in the browser.
-If jitter is observed, tune `restitution`, `friction`, or sleep thresholds in physics.ts.
-
-## After gate + VQT #3 pass
-Phase 2 begins: variable font axis mapping curve tuning (exponential, not linear).
+## Next action
+Run dev server and interact to assess curve feel. Adjust `EASE_EXPONENT` (currently 0.45) if needed. Then check opsz range.

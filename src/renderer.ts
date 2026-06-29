@@ -3,6 +3,7 @@ import type { PhysicsLetter } from './types'
 
 const MAX_SPEED = 25
 const MAX_ANGULAR = 8
+const EASE_EXPONENT = 0.45
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t
@@ -10,6 +11,12 @@ function lerp(a: number, b: number, t: number): number {
 
 function clamp01(v: number): number {
   return Math.min(Math.max(v, 0), 1)
+}
+
+// easeOut: rises steeply at low t, flattens toward 1.
+// At t=0.1 → ~0.33; at t=0.5 → ~0.73; t=0/1 boundaries are preserved.
+function easeOut(t: number): number {
+  return Math.pow(t, EASE_EXPONENT)
 }
 
 export function startRenderer(engine: Matter.Engine, letters: PhysicsLetter[]): void {
@@ -55,13 +62,13 @@ function syncDOM(letters: PhysicsLetter[]): void {
     // Transform
     letter.element.style.transform = `translate(${dx}px, ${dy}px) rotate(${angle}rad)`
 
-    // Variable font axes
-    const t = clamp01(speed / MAX_SPEED)
+    // Variable font axes — eased curve: dramatic at low speed, plateau at high
+    const t = easeOut(clamp01(speed / MAX_SPEED))
     const wght = Math.round(lerp(300, 900, t))
 
     if (Math.abs(wght - letter.prevWeight) >= 2) {
       const soft = Math.round(lerp(100, 0, t))
-      const opsz = Math.round(lerp(72, 36, clamp01(angularSpeed / MAX_ANGULAR)))
+      const opsz = Math.round(lerp(72, 36, easeOut(clamp01(angularSpeed / MAX_ANGULAR))))
       letter.element.style.fontVariationSettings = `"wght" ${wght}, "SOFT" ${soft}, "opsz" ${opsz}`
       letter.prevWeight = wght
     }

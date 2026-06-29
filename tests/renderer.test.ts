@@ -82,19 +82,15 @@ describe('renderer wght threshold', () => {
   it('skips fontVariationSettings update when wght change is < 2', () => {
     const engine = Matter.Engine.create()
     const letter = makeLetter()
-    letter.prevWeight = 300
+    // At MAX_SPEED wght=900 (boundary, curve-independent). prevWeight=899 → diff=1 → skip.
+    letter.prevWeight = 899
     Matter.Composite.add(engine.world, letter.body)
     startRenderer(engine, [letter])
 
-    // speed that maps to wght ≈ 301 (t = 1/600 → wght = 300 + 1)
-    // clamp01(1/600) * 600 → wght = 301, diff from prevWeight(300) = 1 → skipped
-    const tinySpeed = (1 / 600) * 25
-    Matter.Body.setVelocity(letter.body, { x: tinySpeed, y: 0 })
+    Matter.Body.setVelocity(letter.body, { x: 25, y: 0 }) // MAX_SPEED → wght=900
     triggerSync(engine)
 
-    // fontVariationSettings should not have been set (still default empty or unchanged)
-    const fvs = letter.element.style.fontVariationSettings
-    expect(fvs === '' || fvs.includes('"wght" 300')).toBe(true)
+    expect(letter.element.style.fontVariationSettings).toBe('')
   })
 
   it('does update fontVariationSettings when wght change is >= 2', () => {
@@ -104,7 +100,7 @@ describe('renderer wght threshold', () => {
     Matter.Composite.add(engine.world, letter.body)
     startRenderer(engine, [letter])
 
-    // speed that maps to wght ≈ 312 (t = 2/100)
+    // speed = 0.5px/frame → eased t well above threshold → wght > 302, fires
     const speed = (12 / 600) * 25
     Matter.Body.setVelocity(letter.body, { x: speed, y: 0 })
     triggerSync(engine)

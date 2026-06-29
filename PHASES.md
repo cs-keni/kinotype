@@ -128,7 +128,7 @@
 ## Phase 2 — Variable Font Coupling (Weeks 5–8)
 _Start only after Phase 1 profiling gate passes._
 
-- [ ] Tune axis mapping curves (exponential, not linear per spec requirement)
+- [x] Tune axis mapping curves (exponential, not linear per spec requirement) — `easeOut(t, 0.45)` applied to all 3 axes
 - [ ] Resting state: letterforms return to default axis values as velocity → 0
 - [ ] Assess opsz range — expand from 36–72 if it looks intentional, not broken
 - [ ] Write composition 3 haiku (original, thematic: making / motion / form)

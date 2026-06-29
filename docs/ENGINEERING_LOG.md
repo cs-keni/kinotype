@@ -74,6 +74,15 @@ Bug: `deactivate()` called `setPosition(homeX,homeY)` and `setAngularVelocity(0)
 
 Fix: added `Matter.Body.setAngle(l.body, 0)` between `setPosition` and `setVelocity` in `deactivate()`. All 17 letters now return to `angle=0`, confirmed via headless browser query and screenshot (identical to initial resting state poster). All 41 tests pass (38 unit + 3 E2E).
 
+## 2026-06-29
+
+### Phase 2 — Exponential axis curve (easeOut, exponent=0.45)
+Replaced linear `t` with `easeOut(t) = Math.pow(t, 0.45)` for all three variable font axes in `renderer.ts`. Effect: at 10% of MAX_SPEED, wght is already ~33% of the way to Black (vs 10% linear); at 50% speed, wght sits at ~73% (vs 50%). Letters that merely flinch already look noticeably bolder — the morph reads at subtle interaction levels. Angular velocity → opsz gets the same easing.
+
+Updated threshold skip test (`renderer.test.ts`): switched from a linear-speed-derived "wght≈301" setup to `prevWeight=899 + MAX_SPEED → wght=900 → diff=1 → skip`, which is curve-agnostic.
+
+All 38 unit tests pass.
+
 ### T11 — Dev-mode frame time logger
 - `renderer.ts`: DEV-gated branch in `startRenderer` wraps `syncDOM` with `performance.now()` timing
 - 60-slot `Float64Array` circular buffer; rolling avg logged every 60 frames via `frameCount % 60`
