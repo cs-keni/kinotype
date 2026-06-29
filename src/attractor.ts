@@ -2,8 +2,8 @@ import Matter from 'matter-js'
 import type { PhysicsLetter } from './types'
 
 // Tuning constants — empirical; adjust during VQT #3 pass
-// terminal_velocity (px/tick) ≈ (force * 277.8) / frictionAir
-// K=0.05, frictionAir=0.015 → ~3px/tick at d=300, ~5.6px/tick close (F_MAX cap)
+// terminal_velocity (px/tick) ≈ (F_MAX * 277.8) / frictionAir
+// F_MAX=0.0003, frictionAir=0.015 → ~5.6px/tick regardless of mass (see forceMag below)
 export const K = 0.05
 export const EPSILON = 10
 export const F_MAX = 0.0003    // low cap prevents close-range oscillation
@@ -26,33 +26,47 @@ export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[
     if (!listenerActive) return
     if (++tickCount >= MAX_TICKS) { deactivate(); return }
 
-    let allAsleep = true
+    let remainingActive = 0
 
     for (const l of letters) {
+      if (l.body.isStatic) continue  // already landed individually
+
       const { body, homeX, homeY } = l
       const dx = homeX - body.position.x
       const dy = homeY - body.position.y
       const dist = Math.sqrt(dx * dx + dy * dy)
 
-      // Non-linear attractor: weak far, strong close, capped.
+      if (dist <= SLEEP_DIST_PX) {
+        settleLetter(l)
+        continue
+      }
+
+      remainingActive++
+
       // Scale by body.mass so all letters share the same effective acceleration
-      // (a = F*m / m = F) regardless of glyph size. Without this, heavy letters
-      // (mass=2.5) get 5× less acceleration than light ones and miss the sleep
-      // threshold, hitting the MAX_TICKS failsafe and teleporting home.
+      // (a = F*m / m = F) regardless of glyph size — prevents heavy letters from
+      // lagging and hitting the MAX_TICKS failsafe snap.
       const forceMag = Math.min(K / (dist + EPSILON), F_MAX) * body.mass
       Matter.Body.applyForce(body, body.position, {
-        x: (dx / (dist || 1)) * forceMag,
-        y: (dy / (dist || 1)) * forceMag,
+        x: (dx / dist) * forceMag,
+        y: (dy / dist) * forceMag,
       })
-
-      if (dist > SLEEP_DIST_PX) {
-        allAsleep = false
-      }
     }
 
-    if (allAsleep) {
+    if (remainingActive === 0) {
       deactivate()
     }
+  }
+
+  function settleLetter(l: PhysicsLetter): void {
+    Matter.Body.setPosition(l.body, { x: l.homeX, y: l.homeY })
+    Matter.Body.setAngle(l.body, 0)
+    Matter.Body.setVelocity(l.body, { x: 0, y: 0 })
+    Matter.Body.setAngularVelocity(l.body, 0)
+    Matter.Body.setStatic(l.body, true)
+    l.body.isSensor = false
+    l.body.frictionAir = 0.02
+    l.element.style.transform = ''
   }
 
   function deactivate() {
@@ -60,15 +74,10 @@ export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[
     Matter.Events.off(engine, 'afterUpdate', tick)
     engine.gravity.y = 1
     letters.forEach((l) => {
-      l.body.frictionAir = 0.02
-      l.body.isSensor = false
-      Matter.Body.setPosition(l.body, { x: l.homeX, y: l.homeY })
-      Matter.Body.setAngle(l.body, 0)
-      Matter.Body.setVelocity(l.body, { x: 0, y: 0 })
-      Matter.Body.setAngularVelocity(l.body, 0)
-      // Re-hang: make static so gravity doesn't pull them down again
-      Matter.Body.setStatic(l.body, true)
-      l.element.style.transform = ''
+      if (!l.body.isStatic) {
+        // Failsafe: snap any letter that didn't settle naturally
+        settleLetter(l)
+      }
     })
   }
 
