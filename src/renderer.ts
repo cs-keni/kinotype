@@ -4,6 +4,8 @@ import type { PhysicsLetter } from './types'
 const MAX_SPEED = 25
 const MAX_ANGULAR = 8
 const EASE_EXPONENT = 0.45
+const OPSZ_REST = 72   // optical size at rest — matches VQT #1 approved poster
+const OPSZ_SPIN = 9    // optical size at max angular velocity (Fraunces min is 9)
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t
@@ -68,7 +70,7 @@ function syncDOM(letters: PhysicsLetter[]): void {
 
     if (Math.abs(wght - letter.prevWeight) >= 2) {
       const soft = Math.round(lerp(100, 0, t))
-      const opsz = Math.round(lerp(72, 36, easeOut(clamp01(angularSpeed / MAX_ANGULAR))))
+      const opsz = Math.round(lerp(OPSZ_REST, OPSZ_SPIN, easeOut(clamp01(angularSpeed / MAX_ANGULAR))))
       letter.element.style.fontVariationSettings = `"wght" ${wght}, "SOFT" ${soft}, "opsz" ${opsz}`
       letter.prevWeight = wght
     }

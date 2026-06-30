@@ -74,6 +74,11 @@ Bug: `deactivate()` called `setPosition(homeX,homeY)` and `setAngularVelocity(0)
 
 Fix: added `Matter.Body.setAngle(l.body, 0)` between `setPosition` and `setVelocity` in `deactivate()`. All 17 letters now return to `angle=0`, confirmed via headless browser query and screenshot (identical to initial resting state poster). All 41 tests pass (38 unit + 3 E2E).
 
+## 2026-06-30
+
+### Phase 2 — opsz range expanded to 9–72
+Expanded opsz spin end from 36 to 9 (Fraunces minimum). Rest stays at 72 (VQT #1 approved). At max angular velocity letters now hit full optical-size minimum — assessed in browser, reads as intentional morph. Named constants `OPSZ_REST` and `OPSZ_SPIN` added to renderer.ts for easy future tuning.
+
 ## 2026-06-29
 
 ### fix(attractor): per-letter landing replaces global allAsleep snap
