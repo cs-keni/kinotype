@@ -52,6 +52,13 @@ function addBounds(engine: Matter.Engine): void {
   Matter.Composite.add(engine.world, bounds)
 }
 
+export function resetBounds(engine: Matter.Engine): void {
+  const all = Matter.Composite.allBodies(engine.world)
+  const labels = new Set(['floor', 'wall-left', 'wall-right'])
+  all.filter((b) => labels.has(b.label)).forEach((b) => Matter.Composite.remove(engine.world, b))
+  addBounds(engine)
+}
+
 export function wakeBodies(letters: PhysicsLetter[]): void {
   letters.forEach((l) => Matter.Body.setStatic(l.body, false))
 }

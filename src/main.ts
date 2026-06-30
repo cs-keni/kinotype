@@ -1,7 +1,7 @@
 import './style.css'
 import Matter from 'matter-js'
 import { decompose } from './decompose'
-import { createEngine, createBodies } from './physics'
+import { createEngine, createBodies, resetBounds } from './physics'
 import { startRenderer } from './renderer'
 import { initInput } from './input'
 import { activateAttractor } from './attractor'
@@ -45,6 +45,32 @@ async function init() {
         triggerIdle: () => activateAttractor(engine, letters),
       }
     }
+    // Resize: re-home letters to new viewport layout.
+    // Only runs when all letters are static (at rest) — skipped mid-scatter
+    // because getBoundingClientRect includes the CSS translate offset, which
+    // would give wrong home positions for in-flight bodies.
+    let resizeTimer: ReturnType<typeof setTimeout>
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer)
+      resizeTimer = setTimeout(() => {
+        if (letters.some((l) => !l.body.isStatic)) return
+
+        // Clear transforms so rects reflect layout position, not scatter offset
+        letters.forEach((l) => { l.element.style.transform = '' })
+        const rects = letters.map((l) => l.element.getBoundingClientRect())
+
+        letters.forEach((l, i) => {
+          const rect = rects[i]
+          l.homeX = rect.left + rect.width / 2
+          l.homeY = rect.top + rect.height / 2
+          l.width = rect.width
+          l.height = rect.height
+          Matter.Body.setPosition(l.body, { x: l.homeX, y: l.homeY })
+        })
+
+        resetBounds(engine)
+      }, 200)
+    })
   } catch {
     // font load failure handled inside decompose()
   }

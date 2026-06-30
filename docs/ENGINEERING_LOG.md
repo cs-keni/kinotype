@@ -76,6 +76,15 @@ Fix: added `Matter.Body.setAngle(l.body, 0)` between `setPosition` and `setVeloc
 
 ## 2026-06-30
 
+### Deploy config + window resize handler
+**netlify.toml**: `npm run build` → `dist/`, Node 20. No redirects needed (single static page, no SPA routing).
+
+**Resize handler** (`main.ts`): debounced at 200ms. Guard: skips if any letter is not static (in-flight scatter would give wrong rects since `getBoundingClientRect` includes the CSS translate offset). At rest: clears all transforms (write), reads all rects in one pass (read), restores nothing (transforms were '' anyway at rest), updates `homeX/homeY/width/height` on each PhysicsLetter, calls `setPosition` to move the static body, then `resetBounds` to rebuild floor + walls for new viewport size.
+
+**`resetBounds`** added to `physics.ts`: filters `Composite.allBodies` by label (floor/wall-left/wall-right), removes them, re-adds with current `window.innerWidth/Height`.
+
+tsc clean, 38 tests passing.
+
 ### Phase 2 — Composition 3 haiku locked
 "the word shakes itself / apart into its letters / and back into form" (5/7/5). Added `src/compositions.ts` with typed `Composition[]` array — composition 1 ("motion creates form") and composition 3 (haiku) are in. Compositions 2 and 4 are TBD placeholders. Phase 3 will wire up the cycling and multi-line haiku layout.
 

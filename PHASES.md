@@ -168,8 +168,8 @@ _Visual Quality Targets #2, #3, #4, #5 all land here._
 
 ## TODO Backlog
 
-- [ ] **Deploy config**: `netlify.toml` or `vercel.json` with Vite build output. Blocked by: Phase 1 complete.
-- [ ] **Window resize handler**: re-run `decompose()`, update `homeX/homeY`, move bodies to new positions. Blocked by: attractor complete (T7).
+- [x] **Deploy config**: `netlify.toml` — `npm run build` → `dist/`, Node 20.
+- [x] **Window resize handler**: debounced 200ms, updates homeX/homeY + repositions static bodies + resets world bounds. Skips if letters are in-flight (positions self-correct on next at-rest resize).
 - [ ] **Dev frame time logger**: see T11 — tracked as a Phase 1 sub-task.
 - [ ] **`@media (prefers-reduced-motion)` handler**: Known Phase 1 gap. Currently letters scatter/physics-animate for all users regardless of OS reduced-motion setting. Fix: detect preference on init; if set, skip runner start entirely (letters stay static; only CSS axis interpolation at rest). Implement in Phase 4 with full accessibility pass.
 - [ ] **OpenAI API key for gstack designer**: Design review used HTML mockup fallback because the gstack designer binary requires an OpenAI key (`OPENAI_API_KEY`). Set up key to unlock visual mockup generation for future design passes.
