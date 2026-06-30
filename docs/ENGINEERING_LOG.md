@@ -76,6 +76,9 @@ Fix: added `Matter.Body.setAngle(l.body, 0)` between `setPosition` and `setVeloc
 
 ## 2026-06-30
 
+### Phase 2 — Composition 3 haiku locked
+"the word shakes itself / apart into its letters / and back into form" (5/7/5). Added `src/compositions.ts` with typed `Composition[]` array — composition 1 ("motion creates form") and composition 3 (haiku) are in. Compositions 2 and 4 are TBD placeholders. Phase 3 will wire up the cycling and multi-line haiku layout.
+
 ### Phase 2 — opsz range expanded to 9–72
 Expanded opsz spin end from 36 to 9 (Fraunces minimum). Rest stays at 72 (VQT #1 approved). At max angular velocity letters now hit full optical-size minimum — assessed in browser, reads as intentional morph. Named constants `OPSZ_REST` and `OPSZ_SPIN` added to renderer.ts for easy future tuning.
 

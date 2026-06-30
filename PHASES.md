@@ -131,7 +131,8 @@ _Start only after Phase 1 profiling gate passes._
 - [x] Tune axis mapping curves (exponential, not linear per spec requirement) — `easeOut(t, 0.45)` applied to all 3 axes
 - [ ] Resting state: letterforms return to default axis values as velocity → 0
 - [x] Assess opsz range — expanded to 9–72 (full Fraunces min); approved in browser
-- [ ] Write composition 3 haiku (original, thematic: making / motion / form)
+- [x] Write composition 3 haiku (original, thematic: making / motion / form)
+  > "the word shakes itself / apart into its letters / and back into form"
 
 ---
 
