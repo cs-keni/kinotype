@@ -7,6 +7,7 @@ import { initInput } from './input'
 import { activateAttractor, cancelAttractor } from './attractor'
 import { applyColorway, resolveColorway } from './colorways'
 import { resolveComposition } from './compositions'
+import { startEffects } from './effects'
 
 /**
  * localStorage throws outright in some privacy modes, and the composition
@@ -37,6 +38,10 @@ async function init() {
     const engine = createEngine()
     const letters = createBodies(engine, homes)
     startRenderer(engine, letters)
+
+    const trailCanvas = document.getElementById('trail-canvas') as HTMLCanvasElement | null
+    const effects = trailCanvas ? startEffects(engine, letters, trailCanvas, colorway) : null
+
     initInput(
       engine,
       letters,
@@ -82,6 +87,10 @@ async function init() {
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer)
       resizeTimer = setTimeout(() => {
+        // The canvas backing store is tied to the viewport, not to letter
+        // state, so it rescales even mid-scatter when re-homing is skipped.
+        effects?.resize()
+
         if (letters.some((l) => !l.body.isStatic)) return
 
         // Clear transforms so rects reflect layout position, not scatter offset

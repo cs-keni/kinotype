@@ -139,8 +139,16 @@ _Start only after Phase 1 profiling gate passes._
 ## Phase 3 — Polish Details (Weeks 9–14)
 _Visual Quality Targets #2, #3, #4, #5 all land here._
 
-- [ ] Letter trails: canvas layer, DPR-scaled, fade via low-opacity fill (not clear)
-- [ ] Impact flashes: single-frame accent color at boundary collision points
+- [x] Letter trails: canvas layer, DPR-scaled, fade via low-opacity fill (not clear)
+  - `src/effects.ts` owns one canvas for trails and flashes; sharing the fade
+    loop means one full-viewport fill per frame rather than two
+  - `FADE_ALPHA = 0.15` decays a mark in ~300ms, inside the spec 200–400ms
+    window (unit test computes this from the constant, not from the comment)
+  - Resting cost is zero: the loop stops painting once marks have faded out
+  - Measured 0.008–0.053ms/frame against a 4ms budget
+- [x] Impact flashes: single-frame accent color at boundary collision points
+  - `collisionStart` against floor/wall labels, gated on impact speed
+  - 3px radius, not the spec's literal 1px, which is invisible at DPR 2
 - [ ] Collision tuning: jitter prevention, sleep threshold
 - [x] Reassembly choreography: 8–12 second return, worth watching in isolation
   - Arrive steering replaces the inverse-distance attractor: target speed tapers

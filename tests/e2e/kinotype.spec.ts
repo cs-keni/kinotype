@@ -293,3 +293,84 @@ test('unknown colorway falls back to the rotation instead of breaking the page',
   const id = await page.evaluate(() => document.documentElement.dataset.colorway)
   expect(['paper', 'night', 'blueprint']).toContain(id)
 })
+
+// ─── Test 7: Canvas effects ───────────────────────────────────────────────────
+
+/** Count pixels with any alpha, plus how many read as the accent colour. */
+async function samplePixels(page: Page) {
+  return page.evaluate(() => {
+    const canvas = document.getElementById('trail-canvas') as HTMLCanvasElement
+    const ctx = canvas.getContext('2d')!
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    let painted = 0
+    let accentish = 0
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] === 0) continue
+      painted++
+      // Paper accent is #C0392B: strongly red, weakly green. The type colour
+      // (#1A1A1A) and background (#F7F4EE) are both neutral, so a red-dominant
+      // pixel can only have come from an impact flash.
+      if (data[i] > 140 && data[i] - data[i + 1] > 60) accentish++
+    }
+    return { painted, accentish }
+  })
+}
+
+test('trail canvas is scaled to device pixel ratio', async ({ page }) => {
+  await page.goto(PINNED)
+  await waitForReady(page)
+
+  const { backingWidth, cssWidth, dpr } = await page.evaluate(() => {
+    const canvas = document.getElementById('trail-canvas') as HTMLCanvasElement
+    return {
+      backingWidth: canvas.width,
+      cssWidth: canvas.getBoundingClientRect().width,
+      dpr: window.devicePixelRatio,
+    }
+  })
+
+  // VQT #5: drawing at CSS size on a high-DPI display is the flicker bug.
+  expect(backingWidth).toBe(Math.round(cssWidth * Math.max(dpr, 1)))
+})
+
+test('letters leave trails when scattered and none at rest', async ({ page }) => {
+  await page.goto(PINNED)
+  await waitForReady(page)
+
+  const atStart = await samplePixels(page)
+  expect(atStart.painted, 'canvas should start blank').toBe(0)
+
+  const viewport = page.viewportSize()!
+  await page.mouse.click(viewport.width / 2, viewport.height / 2)
+  await stepPhysics(page, 8)
+
+  const scattering = await samplePixels(page)
+  expect(scattering.painted, 'fast letters should smear').toBeGreaterThan(0)
+
+  // Let everything come home, then let the fade run out.
+  await page.evaluate(() => window.__kinotype!.triggerIdle())
+  await page.evaluate(() => window.__kinotype!.stepUntilHome())
+  await stepPhysics(page, 60)
+
+  const atRest = await samplePixels(page)
+  expect(atRest.painted, 'canvas must be blank once the phrase has reformed').toBe(0)
+})
+
+test('boundary impacts flash the accent colour', async ({ page }) => {
+  await page.goto(PINNED)
+  await waitForReady(page)
+
+  const viewport = page.viewportSize()!
+  // Click above the phrase so letters are driven down into the floor.
+  await page.mouse.click(viewport.width / 2, viewport.height / 2 - 220)
+
+  // Sample as the letters fall and bounce rather than once at the end — a
+  // flash fades in ~24 frames, so a single late sample would miss all of them.
+  let sawAccent = false
+  for (let i = 0; i < 30 && !sawAccent; i++) {
+    await stepPhysics(page, 10)
+    sawAccent = (await samplePixels(page)).accentish > 0
+  }
+
+  expect(sawAccent, 'no impact flash was drawn during the fall').toBe(true)
+})

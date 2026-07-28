@@ -127,7 +127,60 @@ Tests 56 → 94 unit, 4 → 9 E2E. New E2E covers three-line haiku stacking,
 display-size sizing, on-screen bounds at display size, and that a colorway
 reaches painted pixels rather than only the CSS variables.
 
-Commit: 1c3377c
+Commit: 6b9b0ff
+
+### Phase 3 — Letter trails and impact flashes
+
+**`src/effects.ts`** (new). Trails and impact flashes share one canvas beneath
+the DOM letters, because both are "paint a mark, let it decay" and sharing the
+fade loop means one full-screen fill per frame instead of two.
+
+**VQT #5 compliance.** The backing store is sized at `devicePixelRatio` and the
+canvas is faded by drawing a low-opacity background-coloured fill over itself.
+Clear-and-redraw is the documented flicker bug on high-DPI displays. `FADE_ALPHA
+= 0.15` decays a mark to 5% in ~18 frames (~300ms), inside the spec's 200–400ms
+window — there is a unit test that computes this from the constant rather than
+trusting the comment.
+
+**No trails during reassembly, for free.** Rather than special-casing the return,
+both effects gate on speed: `TRAIL_MIN_SPEED = 3` and `FLASH_MIN_SPEED = 4` both
+sit above the attractor's `MAX_RETURN_SPEED = 2.4`. The return is simply too slow
+to leave marks. Tests assert the ordering between those constants directly, so
+retuning the attractor faster fails the test instead of silently reintroducing
+trails during reassembly.
+
+This also solves a subtler problem: letters are sensors during the return and
+pass through the floor and walls, and Matter still fires `collisionStart` for
+sensors. Without the speed gate the phrase would strobe accent flashes on its
+way home.
+
+**Resting cost is zero.** A `remainingFadeFrames` countdown resets whenever a
+mark lands and decrements otherwise; at zero the canvas is wiped once and the
+loop stops painting entirely. The piece sits at rest most of the time, so
+skipping the full-viewport fill there matters. Getting this right required
+separating "faded this frame" from "drew a mark this frame" — counting the fade
+as painting resets the countdown every frame and the loop never goes quiet.
+
+**Measured** in-browser at 0.008–0.053ms per frame, against syncDOM's 0.070ms
+and a 4ms budget. Added a dev-mode frame timer mirroring the renderer's, warning
+above 2ms, since a full-viewport fill is the obvious candidate for eating the
+budget on a high-DPI display.
+
+Flash radius is 3px, not the spec's literal "one pixel-wide point". A 1px dot is
+invisible at DPR 2; 3px is the smallest that still reads as a point rather than
+a particle.
+
+Effects degrade to a no-op handle when the 2D context is unavailable, so the
+piece works with canvas disabled.
+
+Tests 94 → 112 unit, 9 → 12 E2E. Canvas drawing cannot be unit-tested under
+jsdom, so the pure gating logic is exported and tested directly while E2E
+verifies real pixels: DPR-scaled backing store, trails appearing on scatter,
+canvas blank once the phrase reforms, and accent-coloured pixels from real
+boundary impacts. Ran the E2E suite three times to confirm the pixel assertions
+are not flaky.
+
+Commit: (pending)
 
 ## 2026-06-28
 
