@@ -128,11 +128,16 @@ test('all letters return within 2px of home after attractor fires', async ({ pag
   // Fire the attractor immediately (bypasses the 3s idle timer for determinism)
   await page.evaluate(() => window.__kinotype!.triggerIdle())
 
-  // Step until all letters are within 2px of home. The attractor has a 600-tick
-  // failsafe that calls deactivate() → setPosition(homeX, homeY) for every body,
-  // so convergence is guaranteed. stepUntilHome returns -1 if it didn't converge.
+  // Step until all letters are within 2px of home. The choreographed return
+  // lands around tick 530; the attractor's MAX_TICKS=1500 failsafe calls
+  // deactivate() → setPosition(homeX, homeY) for every body, so convergence is
+  // guaranteed either way. stepUntilHome returns -1 if it didn't converge.
   const ticksUsed = await page.evaluate(() => window.__kinotype!.stepUntilHome())
-  expect(ticksUsed, 'attractor did not return all letters home within 650 ticks').toBeGreaterThan(0)
+  expect(ticksUsed, 'attractor did not return all letters home in time').toBeGreaterThan(0)
+
+  // VQT #4: the return must be worth watching. Anything under 4s (240 ticks)
+  // is the old mechanical snap, not choreography.
+  expect(ticksUsed, 'return finished too fast to be worth watching').toBeGreaterThan(240)
 
   const returned = await getLetterStates(page)
 
@@ -140,6 +145,60 @@ test('all letters return within 2px of home after attractor fires', async ({ pag
     const dx = letter.x - letter.homeX
     const dy = letter.y - letter.homeY
     const dist = Math.sqrt(dx * dx + dy * dy)
+    expect(dist, `"${letter.char}" is ${dist.toFixed(2)}px from home`).toBeLessThanOrEqual(2)
+  }
+})
+
+// ─── Test 4: Interrupting the return ──────────────────────────────────────────
+
+test('user interaction mid-return cancels the attractor instead of fighting it', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await waitForReady(page)
+
+  const viewport = page.viewportSize()!
+  const cx = viewport.width / 2
+  const cy = viewport.height / 2
+
+  // Scatter, let letters fall, then start the return.
+  await page.mouse.click(cx, cy)
+  await stepPhysics(page, 180)
+  await page.evaluate(() => window.__kinotype!.triggerIdle())
+
+  // Let the return get properly underway (past the stagger wave).
+  await stepPhysics(page, 200)
+  const midReturn = await getLetterStates(page)
+  const midDist = Math.max(
+    ...midReturn.map((l) => Math.sqrt((l.x - l.homeX) ** 2 + (l.y - l.homeY) ** 2)),
+  )
+  expect(midDist, 'letters should still be in flight').toBeGreaterThan(2)
+
+  // Interact mid-flight. This must cancel the return, not stack a second one.
+  await page.mouse.move(cx, cy)
+  await stepPhysics(page, 120)
+
+  const afterInterrupt = await getLetterStates(page)
+
+  // With the attractor cancelled, gravity is restored and the phrase falls
+  // apart again. Compare total distance-from-home rather than any single
+  // letter: if the attractor were still attached this sum would shrink, and
+  // the direction of change is a far less flaky signal than a per-letter check.
+  const totalDist = (states: typeof midReturn) =>
+    states.reduce((sum, l) => sum + Math.sqrt((l.x - l.homeX) ** 2 + (l.y - l.homeY) ** 2), 0)
+
+  expect(
+    totalDist(afterInterrupt),
+    'attractor kept pulling letters home after the user interrupted',
+  ).toBeGreaterThan(totalDist(midReturn))
+
+  // And the piece must still recover: a fresh idle returns everything home.
+  await page.evaluate(() => window.__kinotype!.triggerIdle())
+  const ticksUsed = await page.evaluate(() => window.__kinotype!.stepUntilHome())
+  expect(ticksUsed, 'return did not recover after being interrupted').toBeGreaterThan(0)
+
+  for (const letter of await getLetterStates(page)) {
+    const dist = Math.sqrt((letter.x - letter.homeX) ** 2 + (letter.y - letter.homeY) ** 2)
     expect(dist, `"${letter.char}" is ${dist.toFixed(2)}px from home`).toBeLessThanOrEqual(2)
   }
 })

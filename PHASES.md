@@ -142,7 +142,21 @@ _Visual Quality Targets #2, #3, #4, #5 all land here._
 - [ ] Letter trails: canvas layer, DPR-scaled, fade via low-opacity fill (not clear)
 - [ ] Impact flashes: single-frame accent color at boundary collision points
 - [ ] Collision tuning: jitter prevention, sleep threshold
-- [ ] Reassembly choreography: 8–12 second return, worth watching in isolation
+- [x] Reassembly choreography: 8–12 second return, worth watching in isolation
+  - Arrive steering replaces the inverse-distance attractor: target speed tapers
+    to zero inside `SLOW_RADIUS`, so letters decay into home instead of coasting
+    at terminal velocity into a snap
+  - Reading-order lift-off wave (`STAGGER_TICKS = 150`) — the phrase recomposes
+    left to right rather than moving as one blob
+  - Angular unwind across the flight, so `setAngle(0)` on settle is a no-op
+    instead of a visible rotational pop
+  - Measured 8.9s end to end on a full-viewport scatter (first letter 4.2s,
+    last 8.9s); guarded by a unit test and an E2E floor of 240 ticks
+  - Return is now cancellable — user interaction mid-flight aborts it instead of
+    fighting the cursor, and one engine can only ever have one attractor running
+  - **Still needs a browser play-test**: arrival order is organic, not strictly
+    reading order, because distant letters take longer than near ones. See
+    "Open question" in `docs/ENGINEERING_LOG.md` 2026-07-27
 - [ ] Compositions 1–4, cycle on reload
 - [ ] All 3 colorways, day-of-week assignment
 

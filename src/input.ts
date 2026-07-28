@@ -11,11 +11,16 @@ export function initInput(
   engine: Matter.Engine,
   letters: PhysicsLetter[],
   onIdle: () => void,
+  onInteract: () => void,
 ): void {
   let runner: Matter.Runner | null = null
   let idleTimer: ReturnType<typeof setTimeout> | null = null
 
   function ensureRunning(): void {
+    // Abort any return in flight first. The choreographed return runs ~9.5s,
+    // long enough that the user will often interrupt it; without this the
+    // attractor keeps pulling letters home while the cursor pushes them away.
+    onInteract()
     // Always wake — bodies may have been re-staticized by attractor deactivate
     wakeBodies(letters)
     if (runner) return

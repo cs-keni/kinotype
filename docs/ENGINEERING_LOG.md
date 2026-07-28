@@ -1,5 +1,85 @@
 # Engineering Log
 
+## 2026-07-27
+
+### Phase 3 — Reassembly choreography (VQT #4)
+
+Reworked the return from an inverse-distance attractor into a choreographed
+arrival. The old return read mechanical for four independent reasons, only one
+of which was speed:
+
+1. **Too fast.** Terminal velocity ~5.6px/tick (333px/s) put a 500px return
+   under 2s against an 8–12s target.
+2. **No deceleration.** `F = min(K/(dist+ε), F_MAX)` capped at `F_MAX` for
+   anything nearer than ~157px, so letters coasted at terminal velocity right up
+   to the 5px sleep gate and then snapped. Constant-velocity arrival is the
+   definition of mechanical.
+3. **No phrasing.** Every letter engaged on the same tick — one blob move.
+4. **Rotational pop.** `setAngle(0)` fired at settle (913f2d7), ending a smooth
+   translation with an instant snap to upright.
+
+**Changes to `src/attractor.ts`:**
+
+- **Arrive steering** replaces positional force. The controller now chases a
+  *velocity* that tapers linearly to zero inside `SLOW_RADIUS = 70`, so each
+  letter decays into home asymptotically. This is what removes the mechanical
+  feel. Force = `clamp(velocityError * STEER_GAIN, F_MAX) * mass`.
+- **Reading-order stagger**: `staggerDelay(i, n)` spreads lift-off across
+  `STAGGER_TICKS = 150` (2.5s) so the phrase recomposes left to right.
+- **Angular unwind**: rotation is driven toward upright over the flight
+  (`UNWIND_TICKS = 60`), making the settle-time `setAngle(0)` a no-op.
+  `normalizeAngle()` wraps to (-π, π] so three spins unwind like none.
+- **Retuned**: `MAX_RETURN_SPEED = 2.4`, `RETURN_FRICTION_AIR = 0.006` (steering
+  does the damping now, not drag), `F_MAX` 0.0003 → 0.0008 (enough authority to
+  reverse a scattered letter in ~1s rather than fighting its momentum for 5s),
+  `SLEEP_DIST_PX` 5 → 3, `MAX_TICKS` 600 → 1500.
+- **Removed** `K` and `EPSILON` — the inverse-distance law is gone.
+
+**Measured** (40 letters, full-viewport scatter): first letter lands at tick 249
+(4.15s), last at 534 (8.90s), 4.75s resolution window. Squarely in the 8–12s
+target on a deliberate worst case.
+
+**Latent bug fixed along the way.** `activateAttractor()` registered a new
+`afterUpdate` listener on every idle and nothing ever removed the old one. The
+600-tick failsafe used to close that window; stretching it to 1500 for a ~9s
+return would have let two force fields stack on every letter and double the
+pull. Added a module-level `WeakMap<Engine, detach>` so one engine can only have
+one return in flight, plus `cancelAttractor(engine)` to abort without snapping
+letters home. `input.ts` now takes an `onInteract` callback and fires it from
+`ensureRunning()`, so touching the mouse mid-return aborts the attractor instead
+of letting it fight the cursor. `main.ts` wires the two together.
+
+Cancellation also zeroes `body.force`: Matter clears forces *before*
+`afterUpdate`, so the force the final tick applied is still pending and would
+otherwise be consumed one frame after cancellation. Small (~0.06px/tick) but it
+made "cancel" not quite mean cancel.
+
+**Tests**: 38 → 56 unit (rewrote `tests/attractor.test.ts` against the new
+controller — the old force-formula assertions tested a law that no longer
+exists), 3 → 4 E2E. New E2E covers the interrupt path, which crosses
+`input.ts` → `main.ts` → `attractor.ts` and no unit test reaches. Added a VQT #4
+regression floor: the return must take more than 240 ticks. `tsc --noEmit`
+clean, `npm run build` clean.
+
+**Open question for play-test.** Arrival order is organic rather than strictly
+reading order — a letter early in the phrase but far from home lands after a
+later, nearer one, which softens the left-to-right sweep. Making arrival order
+exact would mean giving each letter a speed proportional to its lift-off
+distance so all flight times match. That is a stronger, more deliberate
+choreography but less physical, and it would spread cruise speeds ~13x across
+letters, which the `wght` axis mapping would amplify into visible weight
+differences. Needs eyes on it before committing either way; the swap point is
+documented at `staggerDelay()`.
+
+**Docs still missing.** `docs/AI_CONTEXT.md` and `docs/HANDOFF.md` are named in
+CLAUDE.md but do not exist in this repo. Not created here — flagged as its own
+task rather than silently scaffolded.
+
+Also added `test-results/` and `playwright-report/` to `.gitignore`. The
+2026-06-30 checkpoint recorded them as already ignored; they were not.
+
+Commit: 1bd0819
+
 ## 2026-06-28
 
 ### T3 — Poster resting state (VQT #1 gate)

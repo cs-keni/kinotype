@@ -4,7 +4,7 @@ import { decompose } from './decompose'
 import { createEngine, createBodies, resetBounds } from './physics'
 import { startRenderer } from './renderer'
 import { initInput } from './input'
-import { activateAttractor } from './attractor'
+import { activateAttractor, cancelAttractor } from './attractor'
 
 async function init() {
   const phrase = document.getElementById('phrase') as HTMLParagraphElement
@@ -14,7 +14,12 @@ async function init() {
     const engine = createEngine()
     const letters = createBodies(engine, homes)
     startRenderer(engine, letters)
-    initInput(engine, letters, () => activateAttractor(engine, letters))
+    initInput(
+      engine,
+      letters,
+      () => activateAttractor(engine, letters),
+      () => cancelAttractor(engine),
+    )
 
     if (import.meta.env.DEV) {
       console.log(`[kinotype] ready — ${letters.length} letters, runner starts on first interaction`)
@@ -28,9 +33,10 @@ async function init() {
           }
         },
         // Step until all letters are within 2px of home. Returns tick count on
-        // success, -1 on timeout. The attractor 600-tick failsafe snaps all
-        // bodies to exact home, so convergence is guaranteed before maxTicks=650.
-        stepUntilHome: (maxTicks = 650, dt = 1000 / 60) => {
+        // success, -1 on timeout. The choreographed return lands ~570 ticks
+        // after activation; the attractor MAX_TICKS=1500 failsafe snaps all
+        // bodies to exact home, so convergence is guaranteed before maxTicks.
+        stepUntilHome: (maxTicks = 1600, dt = 1000 / 60) => {
           for (let i = 0; i < maxTicks; i++) {
             Matter.Engine.update(engine, dt)
             const allHome = letters.every((l) => {
