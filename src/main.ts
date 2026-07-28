@@ -8,6 +8,17 @@ import { activateAttractor, cancelAttractor } from './attractor'
 import { applyColorway, resolveColorway } from './colorways'
 import { resolveComposition } from './compositions'
 import { startEffects } from './effects'
+import { initKeyboard } from './keyboard'
+
+/**
+ * Narrower than this and a long phrase becomes a wall of small glyphs, so the
+ * composition pool is trimmed to shorter pieces. Matches the spec's 768px
+ * minimum for the full desktop layout.
+ */
+const SMALL_VIEWPORT_PX = 768
+
+/** Letter budget on a small viewport — enough for a short phrase, not a haiku. */
+const SMALL_VIEWPORT_MAX_LETTERS = 20
 
 /**
  * localStorage throws outright in some privacy modes, and the composition
@@ -32,22 +43,35 @@ async function init() {
   const colorway = resolveColorway(window.location.search)
   applyColorway(colorway, document.documentElement)
 
+  // Reduced motion is a hard gate, not a softening: no runner, no scatter, no
+  // canvas. The piece stays the poster it starts as. Axis interpolation on
+  // hover is handled in CSS, which is the only motion this mode allows.
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+
   try {
-    const composition = resolveComposition(window.location.search, safeStorage())
+    const maxLetters =
+      window.innerWidth < SMALL_VIEWPORT_PX
+        ? SMALL_VIEWPORT_MAX_LETTERS
+        : Number.POSITIVE_INFINITY
+    const composition = resolveComposition(window.location.search, safeStorage(), maxLetters)
     const homes = await decompose(phrase, composition)
     const engine = createEngine()
     const letters = createBodies(engine, homes)
     startRenderer(engine, letters)
 
     const trailCanvas = document.getElementById('trail-canvas') as HTMLCanvasElement | null
-    const effects = trailCanvas ? startEffects(engine, letters, trailCanvas, colorway) : null
+    const effects =
+      trailCanvas && !reducedMotion ? startEffects(engine, letters, trailCanvas, colorway) : null
 
-    initInput(
-      engine,
-      letters,
-      () => activateAttractor(engine, letters),
-      () => cancelAttractor(engine),
-    )
+    if (!reducedMotion) {
+      const input = initInput(
+        engine,
+        letters,
+        () => activateAttractor(engine, letters),
+        () => cancelAttractor(engine),
+      )
+      initKeyboard(phrase, letters, input.engage)
+    }
 
     if (import.meta.env.DEV) {
       console.log(`[kinotype] ready — ${letters.length} letters, runner starts on first interaction`)

@@ -7,21 +7,31 @@ const HOVER_FORCE = 0.004
 const CLICK_IMPULSE = 0.05   // ~14px/tick initial velocity at mass=1
 const IDLE_MS = 3000
 
+export interface InputHandle {
+  /**
+   * Bring the piece to life: abort any return in flight, wake the bodies, start
+   * the runner if it is not already going, and restart the idle countdown.
+   * Every interaction path goes through this, including keyboard.
+   */
+  engage(): void
+}
+
 export function initInput(
   engine: Matter.Engine,
   letters: PhysicsLetter[],
   onIdle: () => void,
   onInteract: () => void,
-): void {
+): InputHandle {
   let runner: Matter.Runner | null = null
   let idleTimer: ReturnType<typeof setTimeout> | null = null
 
   function ensureRunning(): void {
-    // Abort any return in flight first. The choreographed return runs ~9.5s,
+    // Abort any return in flight first. The choreographed return runs ~9s,
     // long enough that the user will often interrupt it; without this the
     // attractor keeps pulling letters home while the cursor pushes them away.
     onInteract()
-    // Always wake — bodies may have been re-staticized by attractor deactivate
+    // Always wake — bodies may have been re-staticized by attractor deactivate,
+    // and a body asleep on the floor ignores applyForce until the flag clears.
     wakeBodies(letters)
     if (runner) return
     runner = Matter.Runner.create()
@@ -33,17 +43,29 @@ export function initInput(
     idleTimer = setTimeout(onIdle, IDLE_MS)
   }
 
-  document.addEventListener('mousemove', (e) => {
+  function engage(): void {
     ensureRunning()
     resetIdle()
+  }
+
+  // Pointer events rather than mouse events so touch is a first-class input.
+  // Hover repulsion is deliberately mouse-only: a finger has no hover state,
+  // and firing repulsion on touchmove would make the letters flee the finger
+  // that is trying to hit them.
+  document.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse') return
+    engage()
     applyRepulsion(letters, e.clientX, e.clientY)
   })
 
-  document.addEventListener('click', (e) => {
-    ensureRunning()
-    resetIdle()
-    applyScatter(letters, e.clientX, e.clientY)
+  // pointerdown covers click and tap in one path. Using it instead of `click`
+  // also avoids the double-fire a mouse would produce across both events.
+  document.addEventListener('pointerdown', (e) => {
+    engage()
+    applyImpulse(letters, e.clientX, e.clientY)
   })
+
+  return { engage }
 }
 
 function applyRepulsion(letters: PhysicsLetter[], mx: number, my: number): void {
@@ -62,16 +84,30 @@ function applyRepulsion(letters: PhysicsLetter[], mx: number, my: number): void 
   }
 }
 
-function applyScatter(letters: PhysicsLetter[], cx: number, cy: number): void {
+/**
+ * Radial impulse away from a point. Additive by design: a second press
+ * mid-flight stacks on the velocity a letter already has.
+ *
+ * Exported so the keyboard path can scatter a single focused letter using the
+ * same force model as a tap, rather than inventing a second one.
+ */
+export function applyImpulse(letters: PhysicsLetter[], cx: number, cy: number): void {
   for (const { body } of letters) {
     const dx = body.position.x - cx
     const dy = body.position.y - cy
-    const dist = Math.sqrt(dx * dx + dy * dy) || 1
+    const dist = Math.sqrt(dx * dx + dy * dy)
 
-    // Additive: second click mid-flight adds to existing velocity
+    // A letter sitting exactly on the origin has no direction to fly in.
+    // Guarding the divide alone is not enough — a zero-length vector yields a
+    // zero-magnitude force, so the letter would silently ignore the impulse.
+    // Send it straight up instead. This is rare for a tap but routine for a
+    // keyboard scatter, whose origin is the centroid and therefore often sits
+    // on top of a middle letter.
+    const [ux, uy] = dist < 0.001 ? [0, -1] : [dx / dist, dy / dist]
+
     Matter.Body.applyForce(body, body.position, {
-      x: (dx / dist) * CLICK_IMPULSE,
-      y: (dy / dist) * CLICK_IMPULSE,
+      x: ux * CLICK_IMPULSE,
+      y: uy * CLICK_IMPULSE,
     })
   }
 }

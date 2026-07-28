@@ -129,7 +129,9 @@
 _Start only after Phase 1 profiling gate passes._
 
 - [x] Tune axis mapping curves (exponential, not linear per spec requirement) — `easeOut(t, 0.45)` applied to all 3 axes
-- [ ] Resting state: letterforms return to default axis values as velocity → 0
+- [x] Resting state: letterforms return to default axis values as velocity → 0 —
+  `easeOut(0) = 0` puts wght=300, SOFT=100, opsz=72 at zero velocity; covered by
+  `tests/renderer.test.ts` "axis mapping at rest"
 - [x] Assess opsz range — expanded to 9–72 (full Fraunces min); approved in browser
 - [x] Write composition 3 haiku (original, thematic: making / motion / form)
   > "the word shakes itself / apart into its letters / and back into form"
@@ -192,10 +194,32 @@ _Visual Quality Targets #2, #3, #4, #5 all land here._
 
 ## Phase 4 — Mobile and Accessibility (Weeks 15–20)
 
-- [ ] Touch: tap to scatter; no hover (cursor-only)
-- [ ] Reduced letter count on mobile
-- [ ] Reduced motion: no physics, slow axis interpolation only
-- [ ] Keyboard: Tab + Space to scatter focused letter
+- [x] Touch: tap to scatter; no hover (cursor-only)
+  - Migrated from mouse events to pointer events; `pointerdown` covers click and
+    tap on one path, which also removes the mouse double-fire across both
+  - Hover repulsion is gated to `pointerType === 'mouse'` — a finger has no
+    hover state, and firing repulsion on touchmove makes letters flee the
+    finger trying to hit them
+  - `touch-action: none` on body so a tap-drag does not pan the page while the
+    physics it just started is running
+- [x] Reduced letter count on mobile
+  - Under 768px the composition pool is trimmed to ≤20 letters, so a narrow
+    screen never draws the haiku
+- [x] Reduced motion: no physics, slow axis interpolation only
+  - Hard gate in `main.ts`: no runner, no input, no keyboard, no canvas
+  - The only motion is CSS — a 600ms `font-variation-settings` ease on hover,
+    which is exactly the "slow axis interpolation" the spec allows
+  - Content is not degraded: the `role="img"` label still carries the phrase
+- [x] Keyboard: Tab + Space to scatter focused letter
+  - Implemented as **roving tabindex**, not 50+ tab stops. The literal reading
+    means focusable `aria-hidden` spans (a known antipattern) and 50 tabs to
+    cross one phrase. One tab stop; arrows rove; Space scatters; Escape clears
+  - Space with nothing selected scatters the whole phrase; with a letter
+    selected it scatters just that one
+  - Visually-hidden `aria-describedby` hint, since the controls are otherwise
+    undiscoverable
+  - Keyboard scatter wakes every body, exactly like a click — the impulse is
+    what is targeted, not the waking
 
 ---
 
@@ -213,7 +237,10 @@ _Visual Quality Targets #2, #3, #4, #5 all land here._
 - [x] **Deploy config**: `netlify.toml` — `npm run build` → `dist/`, Node 20.
 - [x] **Window resize handler**: debounced 200ms, updates homeX/homeY + repositions static bodies + resets world bounds. Skips if letters are in-flight (positions self-correct on next at-rest resize).
 - [ ] **Dev frame time logger**: see T11 — tracked as a Phase 1 sub-task.
-- [ ] **`@media (prefers-reduced-motion)` handler**: Known Phase 1 gap. Currently letters scatter/physics-animate for all users regardless of OS reduced-motion setting. Fix: detect preference on init; if set, skip runner start entirely (letters stay static; only CSS axis interpolation at rest). Implement in Phase 4 with full accessibility pass.
+- [x] **`@media (prefers-reduced-motion)` handler**: closed in the Phase 4 pass.
+  `main.ts` detects the preference on init and skips the runner, input, keyboard
+  and canvas entirely; only CSS axis interpolation remains. E2E asserts zero
+  letter movement and an unpainted canvas under `reducedMotion: 'reduce'`.
 - [ ] **OpenAI API key for gstack designer**: Design review used HTML mockup fallback because the gstack designer binary requires an OpenAI key (`OPENAI_API_KEY`). Set up key to unlock visual mockup generation for future design passes.
 
 ---

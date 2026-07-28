@@ -374,3 +374,129 @@ test('boundary impacts flash the accent colour', async ({ page }) => {
 
   expect(sawAccent, 'no impact flash was drawn during the fall').toBe(true)
 })
+
+// ─── Test 8: Phase 4 — touch, keyboard, reduced motion, mobile ────────────────
+
+test('tap scatters on a touch device', async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, isMobile: false })
+  const page = await context.newPage()
+  await page.goto(PINNED)
+  await waitForReady(page)
+
+  const viewport = page.viewportSize()!
+  await page.touchscreen.tap(viewport.width / 2, viewport.height / 2)
+  await stepPhysics(page, 20)
+
+  const moved = (await getLetterStates(page)).some(
+    (l) => Math.hypot(l.x - l.homeX, l.y - l.homeY) > 5,
+  )
+  expect(moved, 'a tap should scatter the phrase').toBe(true)
+  await context.close()
+})
+
+test('phrase is a single tab stop and Space scatters it', async ({ page }) => {
+  await page.goto(PINNED)
+  await waitForReady(page)
+
+  await page.keyboard.press('Tab')
+  const focused = await page.evaluate(() => document.activeElement?.id)
+  expect(focused, 'first Tab should land on the phrase').toBe('phrase')
+
+  await page.keyboard.press('Space')
+  await stepPhysics(page, 20)
+
+  const moved = (await getLetterStates(page)).filter(
+    (l) => Math.hypot(l.x - l.homeX, l.y - l.homeY) > 5,
+  )
+  expect(moved.length, 'Space should scatter the whole phrase').toBeGreaterThan(1)
+})
+
+test('arrow keys select one letter and Space scatters only that one', async ({ page }) => {
+  await page.goto(PINNED)
+  await waitForReady(page)
+
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('ArrowRight')
+  expect(await page.locator('#phrase .glyph.selected').count()).toBe(1)
+
+  const selectedIdx = await page.evaluate(() =>
+    [...document.querySelectorAll('#phrase .glyph')].findIndex((el) =>
+      el.classList.contains('selected'),
+    ),
+  )
+
+  await page.keyboard.press('Space')
+  await stepPhysics(page, 25)
+
+  // Engaging wakes every body, exactly as a mouse click does, so gravity drops
+  // the whole phrase and "did it move" cannot isolate the impulse. Gravity is
+  // purely vertical, so horizontal displacement is the signal: only the letter
+  // that received the radial impulse should travel sideways.
+  const states = await getLetterStates(page)
+  const dx = states.map((l) => Math.abs(l.x - l.homeX))
+  const chosen = dx[selectedIdx]
+  const others = dx.filter((_, i) => i !== selectedIdx)
+
+  expect(chosen, 'the selected letter should be pushed sideways').toBeGreaterThan(5)
+  expect(
+    chosen,
+    'the selected letter should travel further sideways than any other',
+  ).toBeGreaterThan(Math.max(...others))
+})
+
+test('Escape clears the letter selection', async ({ page }) => {
+  await page.goto(PINNED)
+  await waitForReady(page)
+
+  await page.keyboard.press('Tab')
+  await page.keyboard.press('ArrowRight')
+  expect(await page.locator('#phrase .glyph.selected').count()).toBe(1)
+
+  await page.keyboard.press('Escape')
+  expect(await page.locator('#phrase .glyph.selected').count()).toBe(0)
+})
+
+test('reduced motion runs no physics at all', async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: 'reduce' })
+  const page = await context.newPage()
+  await page.goto(PINNED)
+  await waitForReady(page)
+
+  const viewport = page.viewportSize()!
+  await page.mouse.click(viewport.width / 2, viewport.height / 2)
+  await page.mouse.move(viewport.width / 2 + 20, viewport.height / 2)
+  await page.waitForTimeout(600)
+
+  // Nothing may move: no runner, no scatter, no attractor.
+  const states = await getLetterStates(page)
+  for (const l of states) {
+    expect(Math.hypot(l.x - l.homeX, l.y - l.homeY), `"${l.char}" moved`).toBeLessThan(0.5)
+  }
+
+  // And the canvas must stay untouched.
+  const painted = await page.evaluate(() => {
+    const canvas = document.getElementById('trail-canvas') as HTMLCanvasElement
+    const ctx = canvas.getContext('2d')!
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    for (let i = 3; i < data.length; i += 4) if (data[i] !== 0) return true
+    return false
+  })
+  expect(painted, 'reduced motion should draw no trails').toBe(false)
+
+  // The phrase must still be readable — reduced motion is not degraded content.
+  expect(await page.locator('#phrase').getAttribute('aria-label')).toBe('motion creates form')
+  await context.close()
+})
+
+test('small viewports get a shorter composition', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 480, height: 800 } })
+  const page = await context.newPage()
+  // No composition pin: the mobile letter budget must drive the choice.
+  await page.goto('/?colorway=paper')
+  await waitForReady(page)
+
+  const count = await page.evaluate(() => window.__kinotype!.getLetters().length)
+  expect(count, 'a narrow screen should not get a long phrase').toBeLessThanOrEqual(20)
+  await context.close()
+})

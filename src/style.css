@@ -23,6 +23,9 @@ body {
   background: var(--bg);
   cursor: default;
   overflow: hidden;
+  /* Touch input scatters letters; without this the browser also pans and
+     pinch-zooms, so a tap-and-drag fights the physics it just started. */
+  touch-action: none;
 }
 
 #trail-canvas {
@@ -90,6 +93,24 @@ body {
 
 #phrase:not(:focus-visible) .glyph.selected {
   outline: none;
+}
+
+/* Reduced motion: no physics runs at all (main.ts gates it), so the piece stays
+   the poster. The only motion allowed is slow axis interpolation — a letter
+   under the cursor eases toward a heavier, sharper cut and eases back. */
+@media (prefers-reduced-motion: reduce) {
+  #phrase .glyph {
+    will-change: auto;
+    transition: font-variation-settings 600ms ease;
+  }
+
+  #phrase .glyph:hover {
+    font-variation-settings: 'wght' 600, 'SOFT' 40, 'opsz' 72;
+  }
+
+  #phrase {
+    transition: opacity 400ms ease-in;
+  }
 }
 
 @font-face {

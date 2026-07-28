@@ -208,6 +208,65 @@ with a unit test that puts a letter to sleep and asserts it still flies home.
 
 Tests 112 → 116 unit.
 
+Commit: c5a1ea4
+
+### Phase 4 — Touch, keyboard, reduced motion, mobile
+
+**Touch.** Migrated `input.ts` from mouse events to pointer events. `pointerdown`
+handles click and tap on one path, which also removes the double-fire a mouse
+produced across `pointerdown` and `click`. Hover repulsion is gated to
+`pointerType === 'mouse'`: a finger has no hover state, and running repulsion on
+touchmove makes letters flee the finger trying to hit them. Added `touch-action:
+none` so a tap-drag does not pan the page while the physics it just started
+is still running.
+
+**Keyboard — deliberate deviation from the spec.** The spec asks for "Tab to
+focus a letter, Space to scatter that letter". Implemented literally that is
+50+ tab stops on spans that are `aria-hidden`, which is two accessibility
+problems at once: focusable elements hidden from assistive tech are a known
+antipattern, and tabbing 50 times to cross one phrase is hostile. Built the
+standard equivalent instead — roving tabindex, the pattern a toolbar uses. One
+tab stop on the phrase, arrows rove the selection, Space scatters, Escape
+clears, Home/End jump. Same capability, one stop in the tab order, and the
+`role="img"` label still carries the full sentence. A visually-hidden
+`aria-describedby` hint states the controls, which are otherwise
+undiscoverable.
+
+Space with nothing selected scatters the whole phrase; with a letter selected it
+scatters that one. Either way it wakes every body, exactly as a click does — the
+impulse is what is targeted, not the waking. Worth knowing when reading the E2E:
+"did letters move" cannot isolate a single-letter scatter, because gravity drops
+the whole phrase the moment anything wakes. The test uses horizontal
+displacement instead, since gravity is purely vertical.
+
+**Bug found while testing the keyboard path.** `applyImpulse` guarded its
+normalisation with `|| 1`, which prevents a divide-by-zero but produces a
+*zero-magnitude* force — so a letter sitting exactly on the impulse origin
+silently ignored the impulse entirely. Rare for a tap, but routine for a
+keyboard scatter, whose origin is the phrase centroid and therefore often sits
+on top of a middle letter. Now falls back to a straight-up direction. This fixes
+clicking precisely on a letter's centre too, which had the same dead spot.
+
+**Reduced motion** is a hard gate rather than a softening: no runner, no input,
+no keyboard, no canvas. The piece stays the poster it loads as. The only motion
+is CSS, a 600ms `font-variation-settings` ease on hover, which is exactly the
+"slow axis interpolation only" the spec permits. Content is not degraded — the
+`role="img"` label still carries the phrase. This closes the known Phase 1 gap
+tracked in the TODO backlog.
+
+**Mobile letter count.** Under 768px the composition pool is trimmed to ≤20
+letters, so a narrow screen never draws the three-line haiku.
+
+Tests 116 → 142 unit, 12 → 18 E2E. New E2E drives real touch (`hasTouch`
+context), real keyboard, a `reducedMotion: 'reduce'` context asserting zero
+movement and an unpainted canvas, and a 480px viewport asserting the shorter
+composition.
+
+One flake worth recording: a single E2E run died with `SIGTRAP` inside V8's
+optimizing compiler thread in the Playwright *worker* process, not the browser.
+Did not reproduce across five subsequent full runs. Treated as a Node JIT crash
+unrelated to this code; noted here in case it recurs.
+
 Commit: (pending)
 
 ## 2026-06-28
