@@ -73,7 +73,8 @@ documented at `staggerDelay()`.
 
 **Docs still missing.** `docs/AI_CONTEXT.md` and `docs/HANDOFF.md` are named in
 CLAUDE.md but do not exist in this repo. Not created here — flagged as its own
-task rather than silently scaffolded.
+task rather than silently scaffolded. *(Resolved later the same day; see the
+"Missing handoff docs" entry below.)*
 
 Also added `test-results/` and `playwright-report/` to `.gitignore`. The
 2026-06-30 checkpoint recorded them as already ignored; they were not.
@@ -266,6 +267,28 @@ One flake worth recording: a single E2E run died with `SIGTRAP` inside V8's
 optimizing compiler thread in the Playwright *worker* process, not the browser.
 Did not reproduce across five subsequent full runs. Treated as a Node JIT crash
 unrelated to this code; noted here in case it recurs.
+
+Commit: 9eaa89a
+
+### Missing handoff docs created
+
+`docs/AI_CONTEXT.md` and `docs/HANDOFF.md` are both named in CLAUDE.md as
+required reading at the start of every session, and neither had ever existed.
+Flagged twice today before writing them, since scaffolding two architecture docs
+is a scope decision rather than a side effect of a code change.
+
+`AI_CONTEXT.md` documents the module map, boot order (which is order-dependent —
+the colorway must be applied before anything paints), the render pipeline, and
+specifically the **load-bearing decisions**: the ones where the obvious change
+breaks something non-obvious. Four of those have already bitten during this
+session's work: the one-attractor-per-engine WeakMap, `applyForce` not waking
+sleeping bodies, effect thresholds needing to stay above `MAX_RETURN_SPEED`, and
+fading the canvas by filling rather than clearing.
+
+`HANDOFF.md` records project state, component ownership, the three separate
+animation systems and how they hand off to each other, the tuning knobs in the
+order someone will want them, and the honest blocker: nobody has watched the
+reassembly yet.
 
 Commit: (pending)
 
