@@ -157,8 +157,19 @@ _Visual Quality Targets #2, #3, #4, #5 all land here._
   - **Still needs a browser play-test**: arrival order is organic, not strictly
     reading order, because distant letters take longer than near ones. See
     "Open question" in `docs/ENGINEERING_LOG.md` 2026-07-27
-- [ ] Compositions 1–4, cycle on reload
-- [ ] All 3 colorways, day-of-week assignment
+- [x] Compositions 1–4, cycle on reload
+  - `lines: string[]` on every composition, so the haiku is not a special case —
+    `decompose()` runs one code path for single-line and multi-line
+  - Composition 2 `build things that move`, composition 4 `VELOCITY` (8 letters
+    at display size, `clamp(72px, 15vw, 168px)`)
+  - Rotation persists in `localStorage`, so reloads actually cycle instead of
+    landing at random; degrades to composition 1 when storage is blocked
+- [x] All 3 colorways, day-of-week assignment
+  - Paper / Night / Blueprint, exact spec hex values, applied as CSS custom
+    properties on the root element before the phrase fades in
+  - `?composition=` and `?colorway=` overrides pin both. Needed for the E2E
+    screenshot baseline, which would otherwise be a coin flip across 4
+    compositions and 3 palettes; doubles as a shareable link to one look
 
 ---
 

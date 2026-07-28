@@ -5,12 +5,35 @@ import { createEngine, createBodies, resetBounds } from './physics'
 import { startRenderer } from './renderer'
 import { initInput } from './input'
 import { activateAttractor, cancelAttractor } from './attractor'
+import { applyColorway, resolveColorway } from './colorways'
+import { resolveComposition } from './compositions'
+
+/**
+ * localStorage throws outright in some privacy modes, and the composition
+ * rotation is decorative. Never let it take the page down.
+ */
+function safeStorage(): Storage | null {
+  try {
+    const probe = '__kinotype_probe__'
+    window.localStorage.setItem(probe, probe)
+    window.localStorage.removeItem(probe)
+    return window.localStorage
+  } catch {
+    return null
+  }
+}
 
 async function init() {
-  const phrase = document.getElementById('phrase') as HTMLParagraphElement
+  const phrase = document.getElementById('phrase') as HTMLElement
+
+  // Colour before layout: the palette must be on the root element before the
+  // phrase fades in, or the first frame flashes the stylesheet default.
+  const colorway = resolveColorway(window.location.search)
+  applyColorway(colorway, document.documentElement)
 
   try {
-    const homes = await decompose(phrase)
+    const composition = resolveComposition(window.location.search, safeStorage())
+    const homes = await decompose(phrase, composition)
     const engine = createEngine()
     const letters = createBodies(engine, homes)
     startRenderer(engine, letters)

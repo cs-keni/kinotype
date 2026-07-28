@@ -51,17 +51,45 @@ body {
   color: var(--fg);
   letter-spacing: -0.02em;
   line-height: 1.05;
+  text-align: center;
   opacity: 0;
   transition: opacity 150ms ease-in;
   user-select: none;
   cursor: default;
 }
 
-#phrase span {
+/* A single word carries the whole composition, so it is set much larger —
+   heavier bodies, slower physics, deliberate contrast with the phrases. */
+#phrase[data-kind='word'] {
+  font-size: clamp(72px, 15vw, 168px);
+  letter-spacing: -0.03em;
+}
+
+/* Class beats element selector, so this wins over the .glyph rule below. */
+#phrase .line {
+  display: block;
+}
+
+#phrase .glyph {
   display: inline-block;
   will-change: transform, font-variation-settings;
   transform-origin: center center;
   cursor: default;
+}
+
+/* Keyboard access: the phrase is one tab stop, arrows rove between letters.
+   Focus lands on the container, so the ring is drawn on the selected glyph. */
+#phrase:focus {
+  outline: none;
+}
+
+#phrase .glyph.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+#phrase:not(:focus-visible) .glyph.selected {
+  outline: none;
 }
 
 @font-face {

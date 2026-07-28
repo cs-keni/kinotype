@@ -1,6 +1,22 @@
 import type { HomePosition } from './types'
+import type { Composition } from './compositions'
+import { compositionText } from './compositions'
 
-export async function decompose(phrase: HTMLParagraphElement): Promise<HomePosition[]> {
+/**
+ * Build the letter DOM for a composition and measure every glyph.
+ *
+ * Structure is always line > glyph, even for a single-line phrase, so the
+ * haiku is not a special case. Spaces stay as text nodes: they hold layout but
+ * get no physics body.
+ *
+ * The whole phrase is one `role="img"` labelled with its full text. Screen
+ * readers get the sentence; the per-letter spans are hidden from them, because
+ * a letter-by-letter reading of a decomposed phrase is noise.
+ */
+export async function decompose(
+  phrase: HTMLElement,
+  composition: Composition,
+): Promise<HomePosition[]> {
   await document.fonts.ready
 
   const frauncesLoaded = [...document.fonts].some(
@@ -16,33 +32,42 @@ export async function decompose(phrase: HTMLParagraphElement): Promise<HomePosit
     throw new Error('Font load failed')
   }
 
-  const text = phrase.textContent ?? ''
-
-  // Replace text with span-wrapped characters; spaces stay as text nodes
+  const text = compositionText(composition)
   phrase.innerHTML = ''
-  for (const char of text) {
-    if (char === ' ') {
-      phrase.appendChild(document.createTextNode(' '))
-    } else {
-      const span = document.createElement('span')
-      span.setAttribute('aria-hidden', 'true')
-      span.textContent = char
-      phrase.appendChild(span)
+  phrase.setAttribute('role', 'img')
+  phrase.setAttribute('aria-label', text)
+  // Drives display-size CSS: a single word is set much larger than a phrase.
+  phrase.dataset.kind = composition.kind
+
+  for (const line of composition.lines) {
+    const lineEl = document.createElement('span')
+    lineEl.className = 'line'
+    for (const char of line) {
+      if (char === ' ') {
+        lineEl.appendChild(document.createTextNode(' '))
+      } else {
+        const glyph = document.createElement('span')
+        glyph.className = 'glyph'
+        glyph.setAttribute('aria-hidden', 'true')
+        glyph.textContent = char
+        lineEl.appendChild(glyph)
+      }
     }
+    phrase.appendChild(lineEl)
   }
 
   // Font is confirmed loaded — reveal phrase
   phrase.style.opacity = '1'
 
   // All getBoundingClientRect calls happen after font load and span wrapping
-  const spans = phrase.querySelectorAll<HTMLSpanElement>('span')
+  const glyphs = phrase.querySelectorAll<HTMLSpanElement>('.glyph')
   const homes: HomePosition[] = []
 
-  for (const span of spans) {
-    const rect = span.getBoundingClientRect()
+  for (const glyph of glyphs) {
+    const rect = glyph.getBoundingClientRect()
     homes.push({
-      char: span.textContent ?? '',
-      element: span,
+      char: glyph.textContent ?? '',
+      element: glyph,
       homeX: rect.left + rect.width / 2,
       homeY: rect.top + rect.height / 2,
       width: rect.width,

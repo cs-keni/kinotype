@@ -80,6 +80,55 @@ Also added `test-results/` and `playwright-report/` to `.gitignore`. The
 
 Commit: 1ac0cd1
 
+### Phase 3 — Colorways and compositions
+
+**`src/colorways.ts`** (new). Paper / Night / Blueprint at the exact spec hex
+values, applied as `--bg` / `--fg` / `--accent` on `document.documentElement`
+before `decompose()` runs — set them after and the first painted frame flashes
+the stylesheet default.
+
+Assignment is `getDay() % 3`. Note the consequence, since it is a real design
+choice and not an accident: a given weekday is pinned to one palette forever
+(Monday is always Night). The spec says "deterministic from the day of the
+week", and all three palettes appear across any 7 days with no two adjacent days
+repeating. If a weekday should instead rotate across weeks, switch the input to
+days-since-epoch; the test at `tests/colorways.test.ts` documents the current
+guarantee explicitly so the swap is a deliberate act.
+
+**`src/compositions.ts`** (rewritten). Every composition is now `lines:
+string[]`, so a single-line phrase is a one-element array and the haiku stops
+being a special case. That collapses `decompose()` to one code path for both.
+Added composition 2 (`build things that move`) and composition 4 (`VELOCITY`, 8
+letters at display size per spec).
+
+Rotation is a `localStorage` counter rather than `Math.random()` — random
+repeats often enough that a returning visitor reads it as broken. Storage access
+is wrapped: private browsing throws on access, and a decorative rotation is not
+worth failing page load over, so it degrades to composition 1.
+
+**`src/decompose.ts`**. Builds the letter DOM from a composition instead of
+reading `textContent`. Structure is `line > glyph`; spaces stay text nodes and
+get no body. Switched the container from `role="text"` (Safari-only, not a real
+ARIA role) to `role="img"` with the full phrase as `aria-label` — screen readers
+get the sentence, the per-letter spans stay `aria-hidden`.
+
+**URL overrides.** `?composition=<id>` and `?colorway=<id>` pin both. This was
+forced by testing: with a rotating composition and a weekday palette, the
+resting-state screenshot baseline is a coin flip across 12 combinations. Both
+fall back to the rotation on an unknown id rather than erroring. A pin does not
+consume a rotation step, so pinning does not perturb the cycle for the next
+real visit.
+
+**Verified** the DOM restructure is visually benign: the existing
+`resting-state.png` baseline still matches unchanged after adding the `.line`
+wrapper and `text-align: center`.
+
+Tests 56 → 94 unit, 4 → 9 E2E. New E2E covers three-line haiku stacking,
+display-size sizing, on-screen bounds at display size, and that a colorway
+reaches painted pixels rather than only the CSS variables.
+
+Commit: 1c3377c
+
 ## 2026-06-28
 
 ### T3 — Poster resting state (VQT #1 gate)
