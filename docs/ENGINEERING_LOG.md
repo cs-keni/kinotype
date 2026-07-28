@@ -78,7 +78,7 @@ task rather than silently scaffolded.
 Also added `test-results/` and `playwright-report/` to `.gitignore`. The
 2026-06-30 checkpoint recorded them as already ignored; they were not.
 
-Commit: 1bd0819
+Commit: 1ac0cd1
 
 ## 2026-06-28
 
