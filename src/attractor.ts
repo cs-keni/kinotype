@@ -103,6 +103,11 @@ export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[
     // Sensors don't generate collision response — letters pass through each
     // other during return so each goes straight home without pile-up jitter.
     l.body.isSensor = true
+    // The attractor fires after 3s of idle, by which point letters resting on
+    // the floor have almost certainly fallen asleep. applyForce does not wake a
+    // sleeping body, so without this they would ignore the return entirely and
+    // get yanked home by the MAX_TICKS failsafe instead of flying.
+    Matter.Sleeping.set(l.body, false)
   })
 
   const delays = letters.map((_, i) => staggerDelay(i, letters.length))

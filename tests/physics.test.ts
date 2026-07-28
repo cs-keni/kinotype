@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import Matter from 'matter-js'
-import { createEngine, createBodies, wakeBodies } from '../src/physics'
+import { createEngine, createBodies, wakeBodies, SLEEP_THRESHOLD_FRAMES } from '../src/physics'
+import { activateAttractor } from '../src/attractor'
 import type { HomePosition } from '../src/types'
 
 function makeHome(char: string, w: number, h: number): HomePosition {
@@ -110,5 +111,58 @@ describe('wakeBodies', () => {
     letters.forEach((l) => expect(l.body.isStatic).toBe(true))
     wakeBodies(letters)
     letters.forEach((l) => expect(l.body.isStatic).toBe(false))
+  })
+})
+
+// ─── Sleeping ────────────────────────────────────────────────────────────────
+// Not a jitter fix: resting drift measures 0.000px either way, so VQT #3 passes
+// on solver stability alone. Sleeping is an idle-cost saving (4.2x on a rested
+// pile) for a runner that loops forever once started.
+
+describe('sleeping', () => {
+  it('enables sleeping so a resting page stops paying full solver cost', () => {
+    expect(createEngine().enableSleeping).toBe(true)
+  })
+
+  it('gives every body an explicit sleep threshold', () => {
+    const engine = createEngine()
+    const letters = createBodies(engine, [
+      { char: 'a', element: document.createElement('span'), homeX: 10, homeY: 10, width: 20, height: 30 },
+    ])
+    expect(letters[0].body.sleepThreshold).toBe(SLEEP_THRESHOLD_FRAMES)
+  })
+
+  it('wakeBodies clears the sleep flag, not just isStatic', () => {
+    // applyForce does not wake a sleeping body, so a letter that dozed off
+    // would ignore both the cursor and the attractor if this regressed.
+    const engine = createEngine()
+    const letters = createBodies(engine, [
+      { char: 'a', element: document.createElement('span'), homeX: 10, homeY: 10, width: 20, height: 30 },
+    ])
+    Matter.Body.setStatic(letters[0].body, false)
+    Matter.Sleeping.set(letters[0].body, true)
+    expect(letters[0].body.isSleeping).toBe(true)
+
+    wakeBodies(letters)
+
+    expect(letters[0].body.isSleeping).toBe(false)
+    expect(letters[0].body.isStatic).toBe(false)
+  })
+
+  it('a sleeping letter still returns home when the attractor fires', () => {
+    const engine = createEngine()
+    const letters = createBodies(engine, [
+      { char: 'a', element: document.createElement('span'), homeX: 100, homeY: 100, width: 20, height: 30 },
+    ])
+    wakeBodies(letters)
+    Matter.Body.setPosition(letters[0].body, { x: 500, y: 400 })
+    Matter.Sleeping.set(letters[0].body, true)
+
+    activateAttractor(engine, letters)
+    for (let i = 0; i < 900; i++) Matter.Engine.update(engine, 1000 / 60)
+
+    expect(letters[0].body.isStatic).toBe(true)
+    expect(letters[0].body.position.x).toBeCloseTo(100, 3)
+    expect(letters[0].body.position.y).toBeCloseTo(100, 3)
   })
 })

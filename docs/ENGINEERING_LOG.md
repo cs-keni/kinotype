@@ -180,6 +180,34 @@ canvas blank once the phrase reforms, and accent-coloured pixels from real
 boundary impacts. Ran the E2E suite three times to confirm the pixel assertions
 are not flaky.
 
+Commit: 2ac939a
+
+### Phase 3 — Collision tuning and sleeping
+
+Went looking for the resting jitter this task assumes and did not find any.
+Measured a 44-letter pile stacked four deep on the floor, let it fully settle,
+then summed positional drift over the following second: **0.000px, with and
+without sleeping**. VQT #3 passes on Matter's solver stability alone. There is
+no twitch to prevent, and any change sold as a jitter fix here would be fiction.
+
+Enabled `engine.enableSleeping` regardless, for a reason that does hold up:
+idle cost. `Matter.Runner` loops forever once the first interaction starts it,
+and the piece spends nearly all its life at rest. Simulating that rested pile
+costs **0.0305ms/tick awake against 0.0073ms/tick asleep**, a 4.2x saving that a
+backgrounded tab keeps collecting. Kept Matter's default 60-frame threshold:
+sleeping sooner risks freezing a letter that is still genuinely drifting, since
+the motion metric is also low for slow steady movement.
+
+The sharp edge is that `Matter.Body.applyForce` does **not** wake a sleeping
+body. A letter that dozed off on the floor would silently ignore the cursor, and
+worse, ignore the attractor — the return fires after 3s of idle, which is longer
+than the 1s sleep threshold, so by then most of the phrase is asleep. Every
+letter would have been dragged home by the `MAX_TICKS` failsafe instead of
+flying. Both `wakeBodies()` and `activateAttractor()` now clear the sleep flag,
+with a unit test that puts a letter to sleep and asserts it still flies home.
+
+Tests 112 → 116 unit.
+
 Commit: (pending)
 
 ## 2026-06-28

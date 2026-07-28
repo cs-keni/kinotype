@@ -149,7 +149,16 @@ _Visual Quality Targets #2, #3, #4, #5 all land here._
 - [x] Impact flashes: single-frame accent color at boundary collision points
   - `collisionStart` against floor/wall labels, gated on impact speed
   - 3px radius, not the spec's literal 1px, which is invisible at DPR 2
-- [ ] Collision tuning: jitter prevention, sleep threshold
+- [x] Collision tuning: jitter prevention, sleep threshold
+  - **Jitter needed no fix.** Measured 0.000px of resting drift over a second
+    for a 44-letter pile, with and without sleeping. VQT #3 passes on Matter's
+    own solver stability; there was no twitch to prevent
+  - Sleeping enabled anyway for idle cost: a rested pile costs 0.0305ms/tick
+    awake vs 0.0073ms/tick asleep (4.2x), and the runner loops forever once
+    started, so a backgrounded tab keeps paying
+  - `wakeBodies()` and `activateAttractor()` now clear the sleep flag —
+    `applyForce` does not wake a sleeping body, so without it a letter that
+    dozed off would ignore both the cursor and the return
 - [x] Reassembly choreography: 8–12 second return, worth watching in isolation
   - Arrive steering replaces the inverse-distance attractor: target speed tapers
     to zero inside `SLOW_RADIUS`, so letters decay into home instead of coasting
