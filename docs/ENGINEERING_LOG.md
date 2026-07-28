@@ -359,7 +359,7 @@ lifecycle (rest → hover → scatter → return → reform) rather than inferri
 cohesion from sub-pixel displacement, which the real-time runner perturbs into
 flakiness. Ran the suite six times clean.
 
-Commit: (pending)
+Commit: a21ec40
 
 ## 2026-06-28
 
