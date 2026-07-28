@@ -2,17 +2,25 @@
 
 Current state of the work, who owns what, and what the next agent should pick up.
 
-**Last updated:** 2026-07-27
+**Last updated:** 2026-07-27 (second pass)
 **Branch:** `main` (all work lands directly on main)
 
 ## Where the project stands
 
-**Phases 1–4 are complete.** The piece is feature-complete against the spec's
-first four phases: physics, variable-font coupling, all polish details, and the
-full mobile/accessibility pass. Phase 5 (Depth) has not been started.
+**Phases 1–4 are complete**, plus one of the four Phase 5 items.
 
-- 142 unit tests, 18 E2E, `tsc --noEmit` clean, `npm run build` clean.
+- 172 unit tests, 24 E2E, `tsc --noEmit` clean, `npm run build` clean.
 - Deployed via `netlify.toml` (`npm run build` → `dist/`, Node 20).
+
+Phase 5 status: **constraint springs done** but opt-in via `?springs=on` and off
+by default — it changes the core feel and wants a human eye before it becomes
+the default. SVG shatter, GIF export, and custom composition are untouched.
+
+Two bugs were fixed underneath the springs work, both pre-existing:
+letters left as sensors after a no-op return (they would fall through the floor
+on the next interaction), and landed letters creeping a few px off home
+(Matter applies a stale `positionImpulse` to static bodies), which meant the
+reformed poster was visibly not the poster.
 
 ## The one thing blocking confident progress
 
@@ -48,6 +56,7 @@ letters. Could read as intentional, could read as broken. The swap point is
 | Content | `compositions.ts` | 4 pieces, localStorage rotation |
 | Input | `input.ts` | Pointer events; hover is mouse-only |
 | Keyboard | `keyboard.ts` | Roving tabindex, deliberate spec deviation |
+| Word springs | `constraints.ts` | Opt-in `?springs=on`; two release mechanisms |
 
 ## Animation system
 
@@ -72,22 +81,34 @@ attractor.ts  MAX_RETURN_SPEED  2.4   overall return pace
 renderer.ts   EASE_EXPONENT     0.45  axis response curve
 effects.ts    FADE_ALPHA        0.15  trail decay rate
               TRAIL_MAX_ALPHA   0.35  trail faintness ceiling
+constraints.ts SPRING_STIFFNESS 0.06  how rigid a word is
+              BREAK_RELATIVE_SPEED 3  how easily strain tears a bond
 ```
+
+## URL overrides
+
+`?composition=<id>` `?colorway=<id>` `?springs=on`. All three exist so a
+specific look can be pinned — E2E depends on the first two, since a rotating
+composition against a weekday palette makes the screenshot baseline a coin flip
+across 12 combinations.
 
 ## Suggested next steps, in priority order
 
 1. **Play-test the return in a browser.** Judge VQT #4 and the arrival-order
    question above. Everything else is downstream of this.
-2. **Phase 5 triage.** Four items, and they are not equal:
-   - *Constraint springs* (words hold together before scattering) — self-contained
-     physics, the natural next build.
+2. **Decide on word springs.** Open `?springs=on` next to the default and pick.
+   If they stay, flip the default in `main.ts`; if not, delete
+   `constraints.ts` and its `wordIndex` plumbing in `decompose.ts`.
+3. **Remaining Phase 5**, deliberately not started — each needs a decision
+   before code:
    - *Custom composition* (user-typed phrase) — moderate, but it adds a UI
      surface, and the spec's "what to resist" section argues for keeping the
-     piece bare.
+     piece bare. Decide whether the piece should have chrome at all.
    - *SVG shatter* (opentype.js outline tracing, triangulation) — large, adds a
      dependency, heavy taste component.
-   - *GIF export* — large, adds an encoder dependency, needs a UX decision.
-3. **Set `OPENAI_API_KEY`** to unblock the gstack designer for visual mockups
+   - *GIF export* — large, adds an encoder dependency, needs a UX decision
+     (where does the button live in a piece with no chrome?).
+4. **Set `OPENAI_API_KEY`** to unblock the gstack designer for visual mockups
    (tracked in the PHASES backlog).
 
 ## Conventions
