@@ -290,6 +290,75 @@ animation systems and how they hand off to each other, the tuning knobs in the
 order someone will want them, and the honest blocker: nobody has watched the
 reassembly yet.
 
+Commit: 203e2c4
+
+### Phase 5 — Word springs, plus two real bugs found underneath
+
+**`src/constraints.ts`** (new). Adjacent letters inside a word are sprung
+together. `decompose()` now assigns a `wordIndex` per glyph, bumped at every
+space *and* every line break, so the haiku never springs a letter to one on
+another line.
+
+**Shipped opt-in via `?springs=on`, off by default.** It changes the core feel —
+a hover drags a whole word rather than leaning one letter. That is the spec's
+Phase 5 intent, but whether it is an improvement is a judgement nobody has made
+by looking at it, and defaulting it on would silently change the piece. The flag
+makes the A/B one keystroke.
+
+**Two release mechanisms, and the measurement that forced the second one.** The
+original design broke bonds purely on strain, which is the more physical model.
+It does not work: a radial impulse pushes adjacent letters in nearly the same
+direction at nearly the same speed, so a word flies in formation and the
+separation between its letters barely changes. Measured across a full 240-tick
+scatter, **1 of 14 bonds tore** at default stiffness. Sweeping stiffness from
+0.06 down to 0.01 and the separation-speed threshold from 3 to 0.5 got that to
+**3 of 14**. Strain alone means words are permanently rigid, which quietly
+deletes letter-level physics. So a scatter now releases every bond explicitly —
+which is what the spec sentence actually says, "words hold together *before*
+scattering" — and strain-breaking stays for everything that is not a scatter.
+Strain also gained a separation-speed rule alongside the distance rule, measured
+along the bond so a shear does not snap it.
+
+#### Bug 1 — letters left as sensors after a no-op return
+
+`detach()` restored `isSensor` only for letters that were still moving.
+Activation sets `isSensor = true` on *every* letter, including already-settled
+ones. When the idle timer re-fires the attractor on a phrase that is already
+home, every letter is static, the run deactivates immediately, and the static
+letters keep `isSensor = true` permanently. The next interaction wakes them as
+sensors and they fall straight through the floor. Now restores all letters.
+
+#### Bug 2 — landed letters creeping off home
+
+Found chasing an E2E failure I initially blamed on springs; it reproduces
+identically with springs off, so it predates this work.
+
+After a scatter and return, one letter would end up static and 2.8–6.2px from
+its home, permanently, with the offset purely horizontal. Instrumenting the
+settle path showed the letter settling at *exactly* home and then moving
+afterwards, while static, with `homeX` unchanged.
+
+Cause: Matter's `Resolver.postSolvePosition` translates any body holding a
+non-zero `positionImpulse` and **does not check `isStatic`**. A letter resting
+against a neighbour accumulates a separation impulse while dynamic;
+`settleLetter` zeroed velocity and set the body static but left that impulse, so
+Matter kept nudging the letter for frames after it landed, decaying by
+`positionWarming` but summing to a few px along the contact normal. Hence purely
+horizontal: it is the normal between letters piled side by side on the floor.
+
+`settleLetter` now clears `positionImpulse` and `totalContacts`. These are real
+runtime fields Matter does not publish in its typings, so they go through a
+narrow `ResolverInternals` interface rather than `any`. Regression test puts two
+letters in genuine contact, lands them, then steps 120 more ticks and asserts
+neither moved.
+
+This one mattered: it meant the reformed poster was visibly not the poster.
+
+Tests 142 → 172 unit, 18 → 24 E2E. E2E asserts bond counts through the full
+lifecycle (rest → hover → scatter → return → reform) rather than inferring
+cohesion from sub-pixel displacement, which the real-time runner perturbs into
+flakiness. Ran the suite six times clean.
+
 Commit: (pending)
 
 ## 2026-06-28

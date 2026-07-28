@@ -226,7 +226,20 @@ _Visual Quality Targets #2, #3, #4, #5 all land here._
 ## Phase 5 — Depth (Months 5+)
 
 - [ ] SVG shatter: opentype.js glyph outline tracing, double-click trigger
-- [ ] Constraint springs: words hold together before scattering
+- [x] Constraint springs: words hold together before scattering — **opt-in via
+  `?springs=on`, deliberately off by default**
+  - `src/constraints.ts`: adjacent letters within a word are sprung together;
+    word index is tracked per glyph in `decompose()` and never crosses a line
+  - Two release mechanisms, both needed. A scatter releases every bond (the
+    spec's "before scattering" — cohesion is the pre-scatter state); strain
+    releases individual bonds, covering collisions and one word hitting another
+  - **Why strain alone is not enough**, measured: a radial impulse pushes
+    adjacent letters in nearly the same direction at the same speed, so a word
+    flies in formation and barely stretches. Across a full 240-tick scatter only
+    1 of 14 bonds tore at default stiffness, and still only 3 of 14 with
+    stiffness and the speed threshold both dropped 6x. Without an explicit
+    release, "springs on" would mean words never come apart at all
+  - Off by default because it changes the core feel and nobody has looked at it
 - [ ] GIF export: 3-second scatter + early reassembly
 - [ ] Custom composition: user-typed phrase
 

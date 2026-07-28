@@ -9,6 +9,7 @@ import { applyColorway, resolveColorway } from './colorways'
 import { resolveComposition } from './compositions'
 import { startEffects } from './effects'
 import { initKeyboard } from './keyboard'
+import { createWordSprings } from './constraints'
 
 /**
  * Narrower than this and a long phrase becomes a wall of small glyphs, so the
@@ -63,14 +64,36 @@ async function init() {
     const effects =
       trailCanvas && !reducedMotion ? startEffects(engine, letters, trailCanvas, colorway) : null
 
+    // Word springs are opt-in via `?springs=on`, deliberately OFF by default.
+    //
+    // They change the core feel: a hover drags a whole word rather than leaning
+    // one letter, and scattering a single letter tugs its neighbours until the
+    // bond tears. That is the spec's intent for Phase 5, but whether it is an
+    // improvement is a judgement nobody has made yet by looking at it. Shipping
+    // it on by default would silently change the piece. The flag makes the
+    // comparison one keystroke instead of a rebuild.
+    const springsEnabled = new URLSearchParams(window.location.search).get('springs') === 'on'
+    const springs = !reducedMotion && springsEnabled ? createWordSprings(engine, letters) : null
+
+    // Single entry point for starting a return, so the debug handle and the
+    // idle timer cannot drift apart. Bonds would fight the attractor, which
+    // steers every letter individually, so they drop for the flight and
+    // reattach only once the phrase has actually reformed.
+    const startReturn = () => {
+      springs?.clear()
+      activateAttractor(engine, letters, () => springs?.rebuild())
+    }
+
     if (!reducedMotion) {
+      const releaseSprings = () => springs?.clear()
       const input = initInput(
         engine,
         letters,
-        () => activateAttractor(engine, letters),
+        startReturn,
         () => cancelAttractor(engine),
+        releaseSprings,
       )
-      initKeyboard(phrase, letters, input.engage)
+      initKeyboard(phrase, letters, input.engage, releaseSprings)
     }
 
     if (import.meta.env.DEV) {
@@ -100,7 +123,13 @@ async function init() {
           }
           return -1
         },
-        triggerIdle: () => activateAttractor(engine, letters),
+        triggerIdle: startReturn,
+        // Live count of intact word bonds. Exposed because the alternative —
+        // inferring cohesion from sub-pixel displacement — is perturbed by the
+        // real-time runner racing manual steps, and makes for flaky tests.
+        springCount: () =>
+          Matter.Composite.allConstraints(engine.world).filter((c) => c.label === 'word-spring')
+            .length,
       }
     }
     // Resize: re-home letters to new viewport layout.
@@ -131,6 +160,10 @@ async function init() {
         })
 
         resetBounds(engine)
+        // Spring rest lengths are derived from home positions, which just
+        // moved. Stale lengths would have the springs hauling letters away
+        // from their new homes.
+        springs?.rebuild()
       }, 200)
     })
   } catch {

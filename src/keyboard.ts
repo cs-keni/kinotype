@@ -56,6 +56,8 @@ export function initKeyboard(
   phrase: HTMLElement,
   letters: PhysicsLetter[],
   engage: () => void,
+  /** Fired when Space/Enter applies an impulse. See initInput's onScatter. */
+  onScatter: () => void = () => {},
 ): KeyboardHandle {
   phrase.tabIndex = 0
 
@@ -83,6 +85,7 @@ export function initKeyboard(
 
   function scatter(): void {
     engage()
+    onScatter()
     const centroid = centroidOf(letters)
 
     if (selected < 0) {

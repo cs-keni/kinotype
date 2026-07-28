@@ -282,6 +282,38 @@ describe('activateAttractor integration', () => {
   })
 })
 
+describe('settling is final', () => {
+  it('a landed letter does not creep afterwards', () => {
+    // Regression: Matter's Resolver.postSolvePosition translates any body with
+    // a non-zero positionImpulse and does not check isStatic. A letter resting
+    // against a neighbour accumulates one while dynamic; if settleLetter does
+    // not clear it, Matter keeps nudging the letter for frames after it lands,
+    // parking it a few px off home in the reformed poster.
+    const engine = Matter.Engine.create()
+    engine.gravity.y = 1
+
+    // Two letters overlapping at home, so they are genuinely in contact and
+    // the resolver has something to push apart.
+    const a = makeLetter(300, 300, 306, 300)
+    const b = makeLetter(318, 300, 312, 300)
+    ;[a, b].forEach((l) => Matter.Composite.add(engine.world, l.body))
+
+    activateAttractor(engine, [a, b])
+    step(engine, 400)
+    expect(a.body.isStatic && b.body.isStatic, 'both letters should have landed').toBe(true)
+
+    const landed = [a, b].map((l) => ({ x: l.body.position.x, y: l.body.position.y }))
+    step(engine, 120)
+
+    ;[a, b].forEach((l, i) => {
+      expect(l.body.position.x, `"${l.char}" drifted in x after landing`).toBeCloseTo(landed[i].x, 6)
+      expect(l.body.position.y, `"${l.char}" drifted in y after landing`).toBeCloseTo(landed[i].y, 6)
+      expect(l.body.position.x).toBeCloseTo(l.homeX, 6)
+      expect(l.body.position.y).toBeCloseTo(l.homeY, 6)
+    })
+  })
+})
+
 // ─── Cancellation ────────────────────────────────────────────────────────────
 
 describe('cancelAttractor', () => {

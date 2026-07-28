@@ -21,6 +21,9 @@ export function initInput(
   letters: PhysicsLetter[],
   onIdle: () => void,
   onInteract: () => void,
+  /** Fired when an impulse is applied — a press, not a hover. Word springs use
+   *  this to release: cohesion is the state a scatter ends. */
+  onScatter: () => void = () => {},
 ): InputHandle {
   let runner: Matter.Runner | null = null
   let idleTimer: ReturnType<typeof setTimeout> | null = null
@@ -62,6 +65,7 @@ export function initInput(
   // also avoids the double-fire a mouse would produce across both events.
   document.addEventListener('pointerdown', (e) => {
     engage()
+    onScatter()
     applyImpulse(letters, e.clientX, e.clientY)
   })
 

@@ -12,6 +12,7 @@ interface DebugHandle {
   step: (ticks?: number, dt?: number) => void
   stepUntilHome: (maxTicks?: number, dt?: number) => number
   triggerIdle: () => void
+  springCount: () => number
 }
 
 declare global {
@@ -498,5 +499,87 @@ test('small viewports get a shorter composition', async ({ browser }) => {
 
   const count = await page.evaluate(() => window.__kinotype!.getLetters().length)
   expect(count, 'a narrow screen should not get a long phrase').toBeLessThanOrEqual(20)
+  await context.close()
+})
+
+
+// ─── Test 9: Word springs (Phase 5, opt-in via ?springs=on) ───────────────────
+
+const SPRUNG = '/?composition=motion&colorway=paper&springs=on'
+
+/** Number of intact word bonds. Deterministic, unlike measuring cohesion from
+ *  sub-pixel displacement, which the real-time runner perturbs. */
+const bonds = (page: Page) => page.evaluate(() => window.__kinotype!.springCount())
+
+test('springs are off unless asked for', async ({ page }) => {
+  // The default must not change the piece anyone has already looked at.
+  await page.goto(PINNED)
+  await waitForReady(page)
+  expect(await bonds(page)).toBe(0)
+})
+
+test('springs bond every adjacent pair within a word, and none across words', async ({ page }) => {
+  await page.goto(SPRUNG)
+  await waitForReady(page)
+
+  // "motion creates form" → 6 + 7 + 4 letters → 5 + 6 + 3 = 14 bonds.
+  expect(await bonds(page)).toBe(14)
+})
+
+test('a click tears the bonds apart', async ({ page }) => {
+  await page.goto(SPRUNG)
+  await waitForReady(page)
+  expect(await bonds(page)).toBe(14)
+
+  const viewport = page.viewportSize()!
+  await page.mouse.click(viewport.width / 2, viewport.height / 2)
+  await stepPhysics(page, 60)
+
+  expect(await bonds(page), 'a click should tear words apart').toBe(0)
+})
+
+test('bonds survive a hover that only leans the phrase', async ({ page }) => {
+  await page.goto(SPRUNG)
+  await waitForReady(page)
+
+  // Sweep the cursor across the phrase without pressing.
+  const viewport = page.viewportSize()!
+  for (let i = 0; i <= 6; i++) {
+    await page.mouse.move(viewport.width * (0.3 + i * 0.06), viewport.height / 2)
+    await stepPhysics(page, 3)
+  }
+
+  expect(await bonds(page), 'a hover must not tear a word apart').toBe(14)
+})
+
+test('bonds drop for the return and reform once the phrase is home', async ({ page }) => {
+  await page.goto(SPRUNG)
+  await waitForReady(page)
+
+  const viewport = page.viewportSize()!
+  await page.mouse.click(viewport.width / 2, viewport.height / 2)
+  await stepPhysics(page, 180)
+
+  await page.evaluate(() => window.__kinotype!.triggerIdle())
+  // Bonds are cleared for the flight — they would fight per-letter steering.
+  expect(await bonds(page), 'bonds must not be attached during the return').toBe(0)
+
+  const ticks = await page.evaluate(() => window.__kinotype!.stepUntilHome())
+  expect(ticks, 'springs must not prevent the phrase reforming').toBeGreaterThan(0)
+
+  for (const letter of await getLetterStates(page)) {
+    const dist = Math.hypot(letter.x - letter.homeX, letter.y - letter.homeY)
+    expect(dist, `"${letter.char}" is ${dist.toFixed(2)}px from home`).toBeLessThanOrEqual(2)
+  }
+
+  expect(await bonds(page), 'bonds should be restored once the phrase reformed').toBe(14)
+})
+
+test('reduced motion creates no springs even when asked for', async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: 'reduce' })
+  const page = await context.newPage()
+  await page.goto(SPRUNG)
+  await waitForReady(page)
+  expect(await bonds(page)).toBe(0)
   await context.close()
 })

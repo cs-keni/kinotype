@@ -55,6 +55,15 @@ export const UNWIND_TICKS = 60
 export const MAX_UNWIND_SPEED = 0.06
 export const UNWIND_RESPONSE = 0.04
 
+/**
+ * Runtime fields Matter maintains but does not publish in its typings. Both are
+ * real and load-bearing: see the note in settleLetter().
+ */
+interface ResolverInternals {
+  positionImpulse: { x: number; y: number }
+  totalContacts: number
+}
+
 // One in-flight return per engine. A second activation while one is running
 // would stack a second force field on every letter, doubling the pull.
 const activeRuns = new WeakMap<Matter.Engine, () => void>()
@@ -93,7 +102,16 @@ export function cancelAttractor(engine: Matter.Engine): void {
   activeRuns.get(engine)?.()
 }
 
-export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[]): () => void {
+export function activateAttractor(
+  engine: Matter.Engine,
+  letters: PhysicsLetter[],
+  /**
+   * Fired once the phrase has fully reformed. Not fired on `cancelAttractor`,
+   * because an interrupted return did not reform anything. Word springs use
+   * this to reattach only after every letter is actually home.
+   */
+  onSettled?: () => void,
+): () => void {
   // Cancel any return already in flight on this engine before starting another.
   activeRuns.get(engine)?.()
 
@@ -186,6 +204,18 @@ export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[
     Matter.Body.setStatic(l.body, true)
     l.body.isSensor = false
     l.body.frictionAir = REST_FRICTION_AIR
+    // Matter's Resolver.postSolvePosition translates any body holding a
+    // non-zero positionImpulse and does NOT check isStatic. A letter resting
+    // against a neighbour accumulates a separation impulse while it is still
+    // dynamic; zeroing velocity and going static does not clear it, so Matter
+    // keeps nudging the letter for several frames after it has "landed" —
+    // decaying by positionWarming each frame, but summing to a few px along the
+    // contact normal. That is a letter parked visibly off its home in the
+    // reformed poster. Clear it so settling actually settles.
+    const internals = l.body as unknown as ResolverInternals
+    internals.positionImpulse.x = 0
+    internals.positionImpulse.y = 0
+    internals.totalContacts = 0
     l.element.style.transform = ''
   }
 
@@ -195,26 +225,33 @@ export function activateAttractor(engine: Matter.Engine, letters: PhysicsLetter[
     listenerActive = false
     Matter.Events.off(engine, 'afterUpdate', tick)
     engine.gravity.y = 1
+    // Restore every letter, not just the ones still moving. Activation turns
+    // sensors on for all of them, including letters that were already settled.
+    // If a run ends without those letters passing through settleLetter — which
+    // is exactly what happens when the idle timer re-fires on an already-home
+    // phrase — skipping statics here would leave them sensors forever, and the
+    // next interaction would drop them straight through the floor.
     letters.forEach((l) => {
-      if (!l.body.isStatic) {
-        l.body.isSensor = false
-        l.body.frictionAir = REST_FRICTION_AIR
-        // Matter clears forces before afterUpdate, so the force this run's last
-        // tick applied is still pending and would be consumed one frame after
-        // cancellation. Drop it so cancel really means "stop influencing".
-        l.body.force.x = 0
-        l.body.force.y = 0
-      }
+      l.body.isSensor = false
+      l.body.frictionAir = REST_FRICTION_AIR
+      // Matter clears forces before afterUpdate, so the force this run's last
+      // tick applied is still pending and would be consumed one frame after
+      // cancellation. Drop it so cancel really means "stop influencing".
+      l.body.force.x = 0
+      l.body.force.y = 0
     })
     if (activeRuns.get(engine) === detach) activeRuns.delete(engine)
   }
 
   /** Natural completion: release, then snap any straggler to exact home. */
   function deactivate() {
+    const wasRunning = listenerActive
     detach()
     letters.forEach((l) => {
       if (!l.body.isStatic) settleLetter(l)
     })
+    // Guarded so a double call cannot fire the callback twice.
+    if (wasRunning) onSettled?.()
   }
 
   activeRuns.set(engine, detach)

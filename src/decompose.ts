@@ -39,11 +39,21 @@ export async function decompose(
   // Drives display-size CSS: a single word is set much larger than a phrase.
   phrase.dataset.kind = composition.kind
 
+  // Word index counts across every line, so no word is ever sprung to a glyph
+  // on another line. A space ends a word; so does a line break.
+  let wordIndex = 0
+  let wordStarted = false
+  const wordIndexes: number[] = []
+
   for (const line of composition.lines) {
     const lineEl = document.createElement('span')
     lineEl.className = 'line'
     for (const char of line) {
       if (char === ' ') {
+        if (wordStarted) {
+          wordIndex++
+          wordStarted = false
+        }
         lineEl.appendChild(document.createTextNode(' '))
       } else {
         const glyph = document.createElement('span')
@@ -51,7 +61,13 @@ export async function decompose(
         glyph.setAttribute('aria-hidden', 'true')
         glyph.textContent = char
         lineEl.appendChild(glyph)
+        wordIndexes.push(wordIndex)
+        wordStarted = true
       }
+    }
+    if (wordStarted) {
+      wordIndex++
+      wordStarted = false
     }
     phrase.appendChild(lineEl)
   }
@@ -63,7 +79,7 @@ export async function decompose(
   const glyphs = phrase.querySelectorAll<HTMLSpanElement>('.glyph')
   const homes: HomePosition[] = []
 
-  for (const glyph of glyphs) {
+  glyphs.forEach((glyph, i) => {
     const rect = glyph.getBoundingClientRect()
     homes.push({
       char: glyph.textContent ?? '',
@@ -72,8 +88,9 @@ export async function decompose(
       homeY: rect.top + rect.height / 2,
       width: rect.width,
       height: rect.height,
+      wordIndex: wordIndexes[i],
     })
-  }
+  })
 
   if (import.meta.env.DEV) {
     console.table(
